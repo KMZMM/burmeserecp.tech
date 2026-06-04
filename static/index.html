@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BurmeseRecp.tech</title>
+    <meta
+      name="description"
+      content="iOS-inspired text to speech studio powered by Edge TTS."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="shell">
+      <section class="hero glass">
+        <div class="hero-copy">
+          <p class="eyebrow">BurmeseRecp.tech</p>
+          <h1>Text-to-speech with an iOS-caliber finish.</h1>
+          <p class="lede">
+            Turn scripts into polished voice output with smooth controls,
+            premium visuals, and Edge TTS voices.
+          </p>
+          <div class="hero-pills">
+            <span>Edge TTS engine</span>
+            <span>Download MP3</span>
+            <span>Voice tuning</span>
+          </div>
+        </div>
+
+        <div class="hero-preview">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="wave-card">
+              <div class="wave-bars" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span>
+              </div>
+              <div class="wave-meta">
+                <strong>Studio Preview</strong>
+                <span>Natural voice rendering</span>
+              </div>
+            </div>
+            <div class="mini-stats">
+              <article>
+                <strong>350+</strong>
+                <span>Voices</span>
+              </article>
+              <article>
+                <strong>MP3</strong>
+                <span>Export</span>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="studio-grid">
+        <section class="studio glass">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Studio</p>
+              <h2>Craft your voice output</h2>
+            </div>
+            <button class="ghost-button" id="sampleButton" type="button">
+              Load sample
+            </button>
+          </div>
+
+          <form id="ttsForm" class="studio-form">
+            <label class="field">
+              <span>Script</span>
+              <textarea
+                id="text"
+                name="text"
+                rows="8"
+                maxlength="5000"
+                placeholder="Paste narration, product copy, social captions, or any message you want to hear."
+                required
+              ></textarea>
+              <small id="charCount">0 / 5000</small>
+            </label>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Voice</span>
+                <select id="voice" name="voice" required></select>
+              </label>
+              <label class="field">
+                <span>Language</span>
+                <input id="localeHint" type="text" value="Auto from voice" disabled />
+              </label>
+            </div>
+
+            <div class="slider-grid">
+              <label class="field slider-field">
+                <span>Speed</span>
+                <input id="rate" name="rate" type="range" min="-50" max="50" value="0" />
+                <small id="rateValue">0%</small>
+              </label>
+              <label class="field slider-field">
+                <span>Pitch</span>
+                <input id="pitch" name="pitch" type="range" min="-50" max="50" value="0" />
+                <small id="pitchValue">0Hz</small>
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button class="primary-button" id="generateButton" type="submit">
+                Generate voice
+              </button>
+              <a class="secondary-button disabled" id="downloadLink" download="burmeserecp-tts.mp3">
+                Download MP3
+              </a>
+            </div>
+          </form>
+        </section>
+
+        <aside class="side-panel glass">
+          <div class="section-head compact">
+            <div>
+              <p class="eyebrow">Playback</p>
+              <h2>Ready to review</h2>
+            </div>
+            <span class="status-pill" id="statusPill">Idle</span>
+          </div>
+
+          <audio id="audioPlayer" controls preload="none"></audio>
+
+          <div class="status-card" id="statusCard">
+            Choose a voice, enter your text, and generate an audio preview.
+          </div>
+
+          <div class="tips">
+            <article>
+              <strong>For social clips</strong>
+              <p>Keep speed near +10% for a modern, energetic delivery.</p>
+            </article>
+            <article>
+              <strong>For explainers</strong>
+              <p>Stay close to neutral pitch for calmer, professional narration.</p>
+            </article>
+            <article>
+              <strong>For BurmeseRecp</strong>
+              <p>Start with warm English voices, then test regional options.</p>
+            </article>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+  </html>

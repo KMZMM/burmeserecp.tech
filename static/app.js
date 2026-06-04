@@ -17,7 +17,7 @@ const sampleButton = document.getElementById("sampleButton");
 let currentAudioUrl = null;
 
 const sampleText =
-  "Welcome to BurmeseRecp.tech. This voice sample is generated with Edge TTS and presented in a polished, iOS-inspired studio interface.";
+  "Welcome to burmeserecp dot tech. This sample demonstrates clear, professional text to speech generated with Edge TTS.";
 
 function setStatus(message, tone = "idle") {
   statusCard.textContent = message;

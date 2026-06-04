@@ -18,7 +18,7 @@ class TTSRequest(BaseModel):
     pitch: int = Field(ge=-50, le=50, default=0)
 
 
-app = FastAPI(title="BurmeseRecp")
+app = FastAPI(title="burmeserecp.tech")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -98,4 +98,3 @@ async def text_to_speech(payload: TTSRequest) -> StreamingResponse:
     audio_buffer.seek(0)
     headers = {"Content-Disposition": 'inline; filename="burmeserecp-tts.mp3"'}
     return StreamingResponse(audio_buffer, media_type="audio/mpeg", headers=headers)
-

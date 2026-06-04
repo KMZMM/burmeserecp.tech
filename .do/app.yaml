@@ -11,9 +11,8 @@ services:
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb
     http_port: 8080
-    run_command: uvicorn app:app --host 0.0.0.0 --port 8080
+    run_command: python -m uvicorn app:app --host 0.0.0.0 --port 8080
     envs:
       - key: PYTHONUNBUFFERED
         scope: RUN_AND_BUILD_TIME
         value: "1"
-

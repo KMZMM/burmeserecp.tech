@@ -92,92 +92,101 @@ recent_messages: list[dict] = []
 
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
-    await manager.connect(websocket)
-    
-    # Send recent message history to the newly connected user
-    for msg in recent_messages:
-        try:
-            await websocket.send_json(msg)
-        except Exception:
-            pass
-
-    await manager.broadcast({
-        "type": "system",
-        "text": f"🎉 {username} joined the chat",
-        "sender": "System"
-    })
+  await manager.connect(websocket)
+  
+  # Send recent message history to the newly connected user
+  for msg in recent_messages:
     try:
-        while True:
-            data_str = await websocket.receive_text()
-            try:
-                data = json.loads(data_str)
-            except Exception:
-                data = {"text": data_str, "avatarBg": ""}
-            
-            action = data.get("action")
-            if action == "delete":
-                msg_id = data.get("message_id")
-                found_msg = None
-                for msg in recent_messages:
-                    if msg.get("message_id") == msg_id:
-                        found_msg = msg
-                        break
-                if found_msg and found_msg.get("sender") == username:
-                    recent_messages.remove(found_msg)
-                    await manager.broadcast({
-                        "type": "delete",
-                        "message_id": msg_id
-                    })
-                continue
-                
-            elif action == "react":
-                msg_id = data.get("message_id")
-                emoji = data.get("emoji")
-                if msg_id and emoji:
-                    for msg in recent_messages:
-                        if msg.get("message_id") == msg_id:
-                            reactions = msg.setdefault("reactions", {})
-                            user_list = reactions.setdefault(emoji, [])
-                            if username in user_list:
-                                user_list.remove(username)
-                                if not user_list:
-                                    del reactions[emoji]
-                            else:
-                                user_list.append(username)
-                            
-                            await manager.broadcast({
-                                "type": "react_update",
-                                "message_id": msg_id,
-                                "reactions": reactions
-                            })
-                            break
-                continue
-
-            # Normal message broadcast
-            msg_id = str(uuid.uuid4())
-            msg_payload = {
-                "type": "message",
-                "message_id": msg_id,
-                "sender": username,
-                "text": data.get("text", "").strip(),
-                "avatarBg": data.get("avatarBg", ""),
-                "avatar_url": data.get("avatar_url", ""),
-                "reactions": {}
-            }
-            recent_messages.append(msg_payload)
-            if len(recent_messages) > MAX_RECENT_MESSAGES:
-                recent_messages.pop(0)
-
-            await manager.broadcast(msg_payload)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.broadcast({
-            "type": "system",
-            "text": f"👋 {username} left the chat",
-            "sender": "System"
-        })
+      await websocket.send_json(msg)
     except Exception:
-        manager.disconnect(websocket)
+      pass
+
+  # Broadcast online counts without printing a system message
+  await manager.broadcast({
+    "type": "count_update"
+  })
+  try:
+    while True:
+      data_str = await websocket.receive_text()
+      try:
+        data = json.loads(data_str)
+      except Exception:
+        data = {"text": data_str, "avatarBg": ""}
+      
+      action = data.get("action")
+      if action == "delete":
+        msg_id = data.get("message_id")
+        found_msg = None
+        for msg in recent_messages:
+          if msg.get("message_id") == msg_id:
+            found_msg = msg
+            break
+        if found_msg and found_msg.get("sender") == username:
+          recent_messages.remove(found_msg)
+          await manager.broadcast({
+            "type": "delete",
+            "message_id": msg_id
+          })
+        continue
+        
+      elif action == "react":
+        msg_id = data.get("message_id")
+        emoji = data.get("emoji")
+        if msg_id and emoji:
+          for msg in recent_messages:
+            if msg.get("message_id") == msg_id:
+              reactions = msg.setdefault("reactions", {})
+              
+              # Enforce 1 reaction limit: remove user's name from any other emoji on this message
+              other_emojis_to_cleanup = []
+              for k, u_list in reactions.items():
+                if k != emoji and username in u_list:
+                  u_list.remove(username)
+                  if not u_list:
+                    other_emojis_to_cleanup.append(k)
+              for k in other_emojis_to_cleanup:
+                del reactions[k]
+              
+              # Toggle the target emoji
+              user_list = reactions.setdefault(emoji, [])
+              if username in user_list:
+                user_list.remove(username)
+                if not user_list:
+                  del reactions[emoji]
+              else:
+                user_list.append(username)
+              
+              await manager.broadcast({
+                "type": "react_update",
+                "message_id": msg_id,
+                "reactions": reactions
+              })
+              break
+        continue
+
+      # Normal message broadcast
+      msg_id = str(uuid.uuid4())
+      msg_payload = {
+        "type": "message",
+        "message_id": msg_id,
+        "sender": username,
+        "text": data.get("text", "").strip(),
+        "avatarBg": data.get("avatarBg", ""),
+        "avatar_url": data.get("avatar_url", ""),
+        "reactions": {}
+      }
+      recent_messages.append(msg_payload)
+      if len(recent_messages) > MAX_RECENT_MESSAGES:
+        recent_messages.pop(0)
+
+      await manager.broadcast(msg_payload)
+  except WebSocketDisconnect:
+    manager.disconnect(websocket)
+    await manager.broadcast({
+      "type": "count_update"
+    })
+  except Exception:
+    manager.disconnect(websocket)
 
 # DB_PATH defined globally at the top
 

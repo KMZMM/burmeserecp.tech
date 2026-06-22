@@ -361,7 +361,7 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
   const msgDiv = document.createElement("div");
 
   if (type === 'system') {
-    msgDiv.className = "chat-date-separator";
+    msgDiv.className = "chat-system-message";
     msgDiv.innerHTML = `<span>${text}</span>`;
   } else {
     msgDiv.className = `chat-message ${isSelf ? 'sent' : 'received'}`;

@@ -219,7 +219,7 @@ async def login(payload: LoginRequest):
 
 # Google OAuth handlers removed
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Static mount moved to the end of file for root-level fallback
 
 
 def format_voice_label(voice: dict[str, Any]) -> str:
@@ -236,9 +236,7 @@ def sort_key(voice: dict[str, Any]) -> tuple[int, str]:
     return priority, locale, voice.get("ShortName", "")
 
 
-@app.get("/")
-async def read_index() -> RedirectResponse:
-    return RedirectResponse(url="/static/index.html")
+# Root index handler replaced by StaticFiles fallback
 
 
 @app.get("/api/health")
@@ -324,3 +322,5 @@ async def text_to_speech(payload: TTSRequest) -> StreamingResponse:
     audio_buffer.seek(0)
     headers = {"Content-Disposition": 'inline; filename="burmeserecp-tts.mp3"'}
     return StreamingResponse(audio_buffer, media_type="audio/mpeg", headers=headers)
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -71,9 +71,42 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+MAX_RECENT_MESSAGES = 30
+recent_messages: list[dict] = [
+    {
+        "type": "message",
+        "sender": "Min Khant",
+        "text": "Hey everyone! This voice studio is amazing! The Burmese voices sound so natural. 🔥",
+        "avatarBg": "linear-gradient(135deg, #ff9500, #ff5e3a)",
+        "avatar_url": "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=80&h=80&q=80"
+    },
+    {
+        "type": "message",
+        "sender": "Su Sandar",
+        "text": "Has anyone tried adjusting the pitch for storytelling? What's the best setting for recaps?",
+        "avatarBg": "linear-gradient(135deg, #34c759, #4cd964)",
+        "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80"
+    },
+    {
+        "type": "message",
+        "sender": "Aung Kyaw",
+        "text": "I usually use +10% speed and -5% pitch for recaps, works perfectly! 🎙️",
+        "avatarBg": "linear-gradient(135deg, #007aff, #0584ff)",
+        "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80"
+    }
+]
+
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
     await manager.connect(websocket)
+    
+    # Send recent message history to the newly connected user
+    for msg in recent_messages:
+        try:
+            await websocket.send_json(msg)
+        except Exception:
+            pass
+
     await manager.broadcast({
         "type": "system",
         "text": f"🎉 {username} joined the chat",
@@ -88,13 +121,18 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
             except Exception:
                 data = {"text": data_str, "avatarBg": ""}
             
-            await manager.broadcast({
+            msg_payload = {
                 "type": "message",
                 "sender": username,
                 "text": data.get("text", "").strip(),
                 "avatarBg": data.get("avatarBg", ""),
                 "avatar_url": data.get("avatar_url", "")
-            })
+            }
+            recent_messages.append(msg_payload)
+            if len(recent_messages) > MAX_RECENT_MESSAGES:
+                recent_messages.pop(0)
+
+            await manager.broadcast(msg_payload)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast({

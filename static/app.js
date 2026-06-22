@@ -299,6 +299,7 @@ function initUserSession() {
     
     // Unlock Chat Input
     if (chatInputLockOverlay) chatInputLockOverlay.style.display = "none";
+    if (chatInputArea) chatInputArea.style.display = "flex";
     if (chatMessageInput) {
       chatMessageInput.removeAttribute("disabled");
       chatMessageInput.placeholder = "Write a message...";
@@ -317,6 +318,7 @@ function initUserSession() {
     
     // Lock Chat Input
     if (chatInputLockOverlay) chatInputLockOverlay.style.display = "flex";
+    if (chatInputArea) chatInputArea.style.display = "none";
     if (chatMessageInput) {
       chatMessageInput.setAttribute("disabled", "true");
       chatMessageInput.placeholder = "Sign in to send messages...";
@@ -401,6 +403,11 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
 
 function connectWebSocket() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
+
+  // Clear messages list on connect to avoid duplication of history
+  if (chatMessages) {
+    chatMessages.innerHTML = '<div class="chat-date-separator"><span>Today</span></div>';
+  }
 
   // Check if we are running in local dev (localhost, 127.0.0.1, or file protocol)
   const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || !window.location.hostname;

@@ -380,6 +380,53 @@ function getInitials(name) {
   return name ? name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) : "G";
 }
 
+// ===== Apple & Telegram Emojis Mapping & Rendering System =====
+
+const animatedEmojiMap = {
+  "👍": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People%20and%20Body/Thumbs%20Up.webp",
+  "❤️": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Red%20Heart.webp",
+  "🔥": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Fire.webp",
+  "😂": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Face%20With%20Tears%20Of%20Joy.webp",
+  "👏": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People%20and%20Body/Clapping%20Hands.webp",
+  "🎉": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Activities/Party%20Popper.webp",
+  "😊": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Smiling%20Eyes.webp",
+  "😍": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Heart-Eyes.webp",
+  "😭": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Loudly%20Crying%20Face.webp",
+  "🤔": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Thinking%20Face.webp",
+  "😮": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Face%20With%20Open%20Mouth.webp",
+  "🤩": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Star-Struck.webp",
+  "😜": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Winking%20Face%20With%20Tongue.webp",
+  "😎": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Sunglasses.webp",
+  "💩": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Pile%20Of%20Poo.webp"
+};
+
+function emojiToHex(emoji) {
+  return [...emoji].map(char => char.codePointAt(0).toString(16)).join("-");
+}
+
+function getEmojiHTML(emoji, size = 18) {
+  if (animatedEmojiMap[emoji]) {
+    return `<img src="${animatedEmojiMap[emoji]}" class="ios-emoji animated" style="width: ${size}px; height: ${size}px; vertical-align: middle;" alt="${emoji}" />`;
+  }
+  const hex = emojiToHex(emoji);
+  return `<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${hex}.png" class="ios-emoji" style="width: ${size}px; height: ${size}px; vertical-align: middle;" alt="${emoji}" />`;
+}
+
+function parseMessageText(text) {
+  // Safe HTML escape to prevent XSS before inserting innerHTML
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+  
+  const emojiRegex = /\p{Extended_Pictographic}/gu;
+  return escaped.replace(emojiRegex, (match) => {
+    return getEmojiHTML(match, 19);
+  });
+}
+
 // Render reactions wrapper inside the bubble container
 function renderReactions(msgBubble, messageId, reactions) {
   let wrapper = msgBubble.querySelector('.msg-reactions-wrapper');
@@ -407,7 +454,7 @@ function renderReactions(msgBubble, messageId, reactions) {
     // Show list of users who reacted on hover
     pill.title = users.join(', ');
     
-    pill.innerHTML = `<span>${emoji}</span> <span class="pill-count">${users.length}</span>`;
+    pill.innerHTML = `${getEmojiHTML(emoji, 13)} <span class="pill-count">${users.length}</span>`;
     pill.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!isUserSignedIn) {
@@ -439,7 +486,7 @@ function renderHoverReactions(msgBubble, messageId) {
     const btn = document.createElement('button');
     btn.className = 'tg-reaction-btn';
     btn.type = 'button';
-    btn.textContent = emoji;
+    btn.innerHTML = getEmojiHTML(emoji, 20);
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       if (!isUserSignedIn) {
@@ -482,7 +529,7 @@ function showContextMenu(e, messageId, isSelf) {
     const btn = document.createElement('button');
     btn.className = 'tg-reaction-btn';
     btn.type = 'button';
-    btn.textContent = emoji;
+    btn.innerHTML = getEmojiHTML(emoji, 22);
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       if (!isUserSignedIn) {
@@ -610,7 +657,7 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
           </div>
         </div>
       `;
-      msgDiv.querySelector('.msg-text').textContent = text;
+      msgDiv.querySelector('.msg-text').innerHTML = parseMessageText(text);
     } else {
       let avatarContent = '';
       if (avatarUrl) {
@@ -629,7 +676,7 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
         </div>
       `;
       msgDiv.querySelector('.msg-sender').textContent = sender;
-      msgDiv.querySelector('.msg-text').textContent = text;
+      msgDiv.querySelector('.msg-text').innerHTML = parseMessageText(text);
     }
 
     const bubble = msgDiv.querySelector('.msg-bubble');
@@ -964,6 +1011,55 @@ if (chatSendButton && chatMessageInput) {
   chatMessageInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       handleSendChatMessage();
+    }
+  });
+}
+
+// ===== Emoji Picker Logic =====
+const emojiPicker = document.getElementById("emojiPicker");
+const emojiTrigger = document.querySelector(".emoji-trigger");
+const pickerGrid = document.getElementById("pickerGrid");
+
+function insertEmojiAtCursor(emoji) {
+  if (!chatMessageInput) return;
+  const start = chatMessageInput.selectionStart || 0;
+  const end = chatMessageInput.selectionEnd || 0;
+  const text = chatMessageInput.value;
+  chatMessageInput.value = text.substring(0, start) + emoji + text.substring(end);
+  chatMessageInput.focus();
+  const newPos = start + emoji.length;
+  chatMessageInput.setSelectionRange(newPos, newPos);
+}
+
+if (pickerGrid) {
+  Object.entries(animatedEmojiMap).forEach(([emoji, url]) => {
+    const btn = document.createElement("button");
+    btn.className = "picker-emoji-btn";
+    btn.type = "button";
+    btn.innerHTML = `<img src="${url}" alt="${emoji}" />`;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      insertEmojiAtCursor(emoji);
+      btn.classList.add("emoji-bounce");
+      setTimeout(() => {
+        btn.classList.remove("emoji-bounce");
+      }, 450);
+    });
+    pickerGrid.appendChild(btn);
+  });
+}
+
+if (emojiTrigger && emojiPicker) {
+  emojiTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isHidden = emojiPicker.style.display !== "flex";
+    emojiPicker.style.display = isHidden ? "flex" : "none";
+  });
+  
+  // Close picker when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!emojiPicker.contains(e.target) && e.target !== emojiTrigger) {
+      emojiPicker.style.display = "none";
     }
   });
 }

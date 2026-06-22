@@ -1724,4 +1724,98 @@ html, body {
   z-index: 10;
 }
 
+/* Custom iOS-style Emoji Picker Popover */
+.ios-emoji-picker {
+  position: absolute;
+  bottom: 60px;
+  left: 14px;
+  width: 250px;
+  background: rgba(30, 30, 30, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid var(--ios-border);
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  z-index: 1000;
+  padding: 12px;
+  display: none; /* Flex by JS */
+  flex-direction: column;
+  gap: 8px;
+  animation: pickerPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom left;
+  box-sizing: border-box;
+}
+
+[data-theme="light"] .ios-emoji-picker {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes pickerPop {
+  from { transform: scale(0.9) translateY(8px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.picker-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ios-text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding-left: 2px;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 140px;
+  padding-right: 2px;
+}
+
+.picker-emoji-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.picker-emoji-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  transform: scale(1.18);
+}
+
+[data-theme="light"] .picker-emoji-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.picker-emoji-btn img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+/* Custom Inline Emojis (iOS/Telegram WebP/PNG) */
+.ios-emoji {
+  width: 20px;
+  height: 20px;
+  vertical-align: -3px;
+  margin: 0 1px;
+  display: inline-block;
+  object-fit: contain;
+}
+
+.ios-emoji.animated {
+  /* Prevent static scaling glitches, keep sharp vector representation */
+  transform: translateZ(0);
+}
+
+
 

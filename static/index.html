@@ -1,163 +1,330 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>burmeserecp.tech</title>
-    <meta
-      name="description"
-      content="Professional text-to-speech for clear, polished voice output."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/static/styles.css" />
-  </head>
-  <body>
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>burmeserecp.tech — Voice Studio</title>
+  <meta name="description" content="Professional text-to-speech studio with iOS-inspired aesthetic." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Local auth flow triggers -->
+</head>
+<body>
 
-    <main class="shell">
-      <section class="hero glass">
-        <div class="hero-copy">
-          <p class="eyebrow">burmeserecp.tech</p>
-          <h1>Professional text-to-speech, designed for real users.</h1>
-          <p class="lede">
-            Convert text into clean, natural-sounding audio with a refined,
-            iOS-inspired interface and dependable Edge TTS voices.
-          </p>
-          <div class="hero-pills">
-            <span>Edge TTS engine</span>
-            <span>Download MP3</span>
-            <span>Voice tuning</span>
+  <!-- Dynamic Aura Background (iOS style mesh gradients) -->
+  <div class="bg-aura">
+    <div class="aura-sphere aura-1"></div>
+    <div class="aura-sphere aura-2"></div>
+    <div class="aura-sphere aura-3"></div>
+  </div>
+
+  <!-- iOS Frosted Header Nav Bar -->
+  <header class="ios-navbar">
+    <div class="nav-container">
+      <span class="nav-title">🎙️ Voice Studio</span>
+      <div class="nav-actions">
+        <button class="ios-btn secondary" id="sampleButton">Try Example</button>
+        <button class="ios-btn icon-only" onclick="toggleTheme()" aria-label="Toggle light/dark theme">🌓</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Grid Wrapper -->
+  <div class="app-layout-wrapper">
+    <main class="app-container">
+      
+      <!-- Hero Header -->
+      <header class="app-header">
+        <h1 class="app-title">Voice Generator</h1>
+        <p class="app-subtitle">Create natural-sounding voiceovers instantly using advanced text-to-speech engine.</p>
+      </header>
+
+      <form id="ttsForm" class="ios-form">
+        
+        <!-- Card: Text Composer (Apple Notes Style) -->
+        <section class="ios-card composer-card">
+          <div class="card-header">
+            <span class="section-title">SCRIPT</span>
+            <span id="charCount" class="character-count">0 / 5000</span>
           </div>
-        </div>
-
-        <div class="hero-preview">
-          <div class="phone-frame">
-            <div class="phone-notch"></div>
-            <div class="wave-card">
-              <div class="wave-bars" aria-hidden="true">
-                <span></span><span></span><span></span><span></span><span></span>
-                <span></span><span></span><span></span><span></span><span></span>
-                <span></span><span></span>
-              </div>
-              <div class="wave-meta">
-                <strong>Voice Preview</strong>
-                <span>Natural speech output</span>
-              </div>
-            </div>
-            <div class="mini-stats">
-              <article>
-                <strong>350+</strong>
-                <span>Voices</span>
-              </article>
-              <article>
-                <strong>MP3</strong>
-                <span>Export</span>
-              </article>
-            </div>
+          <div class="textarea-container">
+            <textarea
+              id="text"
+              name="text"
+              maxlength="5000"
+              placeholder="Type or paste your script here..."
+              required
+            ></textarea>
           </div>
-        </div>
-      </section>
-
-      <section class="studio-grid">
-        <section class="studio glass">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Composer</p>
-              <h2>Create your audio</h2>
-            </div>
-            <button class="ghost-button" id="sampleButton" type="button">
-              Try example
-            </button>
-          </div>
-
-          <form id="ttsForm" class="studio-form">
-            <label class="field">
-              <span>Script</span>
-              <textarea
-                id="text"
-                name="text"
-                rows="8"
-                maxlength="5000"
-                placeholder="Paste narration, product copy, social captions, or any message you want to hear."
-                required
-              ></textarea>
-              <small id="charCount">0 / 5000</small>
-            </label>
-
-            <div class="field-row">
-              <label class="field">
-                <span>Voice</span>
-                <select id="voice" name="voice" required></select>
-              </label>
-              <label class="field">
-                <span>Language</span>
-                <input id="localeHint" type="text" value="Auto from voice" disabled />
-              </label>
-            </div>
-
-            <div class="slider-grid">
-              <label class="field slider-field">
-                <span>Speed</span>
-                <input id="rate" name="rate" type="range" min="-50" max="50" value="0" />
-                <small id="rateValue">0%</small>
-              </label>
-              <label class="field slider-field">
-                <span>Pitch</span>
-                <input id="pitch" name="pitch" type="range" min="-50" max="50" value="0" />
-                <small id="pitchValue">0Hz</small>
-              </label>
-            </div>
-
-            <div class="action-row">
-              <button class="primary-button" id="generateButton" type="submit">
-                Generate voice
-              </button>
-              <a class="secondary-button disabled" id="downloadLink" download="burmeserecp-tts.mp3">
-                Download MP3
-              </a>
-            </div>
-          </form>
         </section>
 
-        <aside class="side-panel glass">
-          <div class="section-head compact">
-            <div>
-              <p class="eyebrow">Playback</p>
-              <h2>Playback and export</h2>
+        <!-- Settings Block: Voice Select (iOS Settings Style) -->
+        <section class="ios-settings-group">
+          <div class="group-label">VOICE SELECTOR</div>
+          
+          <div class="ios-card list-card">
+            <!-- Voice List Container -->
+            <div class="voice-selection-grid" id="voiceScroller">
+              <!-- JS dynamically injects premium voice options -->
+              <div class="spotlight-card placeholder-card">
+                <div class="placeholder-spinner"></div>
+                <div class="placeholder-text">Loading available voices...</div>
+              </div>
             </div>
-            <span class="status-pill" id="statusPill">Idle</span>
           </div>
 
-          <audio id="audioPlayer" controls preload="none"></audio>
+          <!-- Hidden inputs for backward compatibility with existing JS API -->
+          <select id="voice" name="voice" required style="display:none;"></select>
+          <input id="localeHint" type="text" value="Auto" disabled style="display:none;" />
+        </section>
 
-          <div class="status-card" id="statusCard">
-            Choose a voice, enter your text, and generate an audio preview.
-          </div>
+        <!-- Settings Block: Fine Tuning (Control Center Style Sliders) -->
+        <section class="ios-settings-group">
+          <div class="group-label">TUNING CONTROL</div>
 
-          <div class="tips">
-            <article>
-              <strong>For social clips</strong>
-              <p>Keep speed near +10% for a modern, energetic delivery.</p>
-            </article>
-            <article>
-              <strong>For explainers</strong>
-              <p>Stay close to neutral pitch for calmer, professional narration.</p>
-            </article>
-            <article>
-              <strong>For product voiceovers</strong>
-              <p>Start with a neutral voice, then adjust speed and pitch lightly for clarity.</p>
-            </article>
+          <div class="ios-card sliders-card">
+            <!-- Speed Control -->
+            <div class="slider-row">
+              <div class="slider-info">
+                <span class="slider-label">🐢 Speed</span>
+                <span class="slider-value-badge" id="rateValue">0%</span>
+              </div>
+              <div class="slider-track-wrapper">
+                <input type="range" class="ios-slider" id="rate" name="rate" min="-50" max="50" value="0" />
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <hr class="ios-divider" />
+
+            <!-- Pitch Control -->
+            <div class="slider-row">
+              <div class="slider-info">
+                <span class="slider-label">🎵 Pitch</span>
+                <span class="slider-value-badge" id="pitchValue">0Hz</span>
+              </div>
+              <div class="slider-track-wrapper">
+                <input type="range" class="ios-slider" id="pitch" name="pitch" min="-50" max="50" value="0" />
+              </div>
+            </div>
           </div>
-        </aside>
-      </section>
+        </section>
+
+        <!-- Action Button: Generate -->
+        <div class="action-container">
+          <button class="ios-btn primary large-btn" id="generateButton" type="submit">
+            <span class="btn-icon">▶</span>
+            <span>Generate Voice</span>
+          </button>
+        </div>
+
+      </form>
     </main>
 
-    <script src="/static/app.js" defer></script>
-  </body>
-  </html>
+    <!-- Telegram Live Chat Widget -->
+    <aside class="telegram-chat-card">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar">💬</div>
+          <div class="chat-meta">
+            <div class="chat-title">BurmeseRecap Community 🇲🇲</div>
+            <div class="chat-status">
+              <span class="status-dot"></span>
+              <span id="onlineCount">1,428 members, 84 online</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button class="chat-action-btn login-trigger" id="loginHeaderBtn" title="Sign In / Sign Up">👤 Sign In</button>
+          <button class="chat-action-btn" aria-label="Search">🔍</button>
+          <button class="chat-action-btn" aria-label="More options">⋮</button>
+        </div>
+      </div>
+
+      <!-- Chat Messages Scroll Area -->
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-date-separator"><span>Today</span></div>
+        
+        <!-- Received Message 1 -->
+        <div class="chat-message received">
+          <div class="msg-avatar" style="background: linear-gradient(135deg, #ff9500, #ff5e3a);">MK</div>
+          <div class="msg-bubble">
+            <div class="msg-sender">Min Khant</div>
+            <div class="msg-text">Hey everyone! This voice studio is amazing! The Burmese voices sound so natural. 🔥</div>
+            <div class="msg-time">7:12 PM</div>
+          </div>
+        </div>
+
+        <!-- Received Message 2 -->
+        <div class="chat-message received">
+          <div class="msg-avatar" style="background: linear-gradient(135deg, #34c759, #4cd964);">SS</div>
+          <div class="msg-bubble">
+            <div class="msg-sender">Su Sandar</div>
+            <div class="msg-text">Has anyone tried adjusting the pitch for storytelling? What's the best setting for recaps?</div>
+            <div class="msg-time">7:14 PM</div>
+          </div>
+        </div>
+
+        <!-- Received Message 3 -->
+        <div class="chat-message received">
+          <div class="msg-avatar" style="background: linear-gradient(135deg, #007aff, #0584ff);">AK</div>
+          <div class="msg-bubble">
+            <div class="msg-sender">Aung Kyaw</div>
+            <div class="msg-text">I usually use +10% speed and -5% pitch for recaps, works perfectly! 🎙️</div>
+            <div class="msg-time">7:15 PM</div>
+          </div>
+        </div>
+
+        <!-- Sent Message (User) -->
+        <div class="chat-message sent">
+          <div class="msg-bubble">
+            <div class="msg-text">Wow, thanks for the tip, Aung! Going to try that now with my script.</div>
+            <div class="msg-time">
+              <span>7:18 PM</span>
+              <span class="msg-status-ticks">✓✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input Container -->
+      <div class="chat-input-container">
+        <!-- Locked Input Overlay (Local Auth Prompt) -->
+        <div class="chat-input-lock-overlay" id="chatInputLockOverlay">
+          <span class="lock-icon">🔒</span>
+          <span class="lock-text">Sign in to send messages</span>
+          <button class="ios-btn primary small-btn" id="lockSignInBtn">Sign In / Sign Up</button>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="chat-input-area" id="chatInputArea">
+          <div class="chat-input-wrapper">
+            <button class="chat-input-icon emoji-trigger" type="button" aria-label="Add emoji">😊</button>
+            <input type="text" id="chatMessageInput" placeholder="Write a message..." autocomplete="off" disabled />
+            <button class="chat-input-icon attach-trigger" type="button" aria-label="Attach file">📎</button>
+          </div>
+          <button class="chat-send-btn" id="chatSendButton" aria-label="Send message" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- iOS Control Center Now Playing Bar -->
+  <footer class="now-playing-bar" id="miniPlayer">
+    <div class="now-playing-inner">
+      
+      <!-- Media Artwork and Info -->
+      <div class="media-details">
+        <div class="media-artwork" id="miniArt">🎙️</div>
+        <div class="media-metadata">
+          <div class="media-title" id="miniTitle">Voice Studio</div>
+          <div class="media-subtitle" id="miniSub">Select a voice to generate</div>
+        </div>
+      </div>
+
+      <!-- Playback Controls -->
+      <div class="playback-controls">
+        <div class="visualizer-bars" id="miniBars">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <audio id="audioPlayer" controls preload="none"></audio>
+      </div>
+
+      <!-- Actions and Status -->
+      <div class="media-actions">
+        <span class="status-indicator" id="statusPill">Idle</span>
+        <a class="ios-btn icon-only circle-btn disabled" id="downloadLink" download="burmeserecp-tts.mp3" title="Download Audio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- Hidden status card for compatibility -->
+  <div id="statusCard" style="display:none;"></div>
+
+  <!-- Script to toggle light/dark theme -->
+  <script>
+    function toggleTheme() {
+      const isLight = document.body.hasAttribute('data-theme');
+      if (isLight) {
+        document.body.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.body.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      }
+    }
+    if (localStorage.getItem('theme') === 'light') {
+      document.body.setAttribute('data-theme', 'light');
+    }
+  </script>
+
+  <!-- iOS Premium Login/Signup Modal -->
+  <div class="ios-modal-overlay" id="authModal">
+    <div class="ios-modal">
+      <div class="modal-header">
+        <span class="modal-title">Community Account</span>
+        <button class="modal-close-btn" id="closeAuthModalBtn">&times;</button>
+      </div>
+      
+      <!-- iOS Segmented Control Tab Switcher -->
+      <div class="ios-segmented-control">
+        <button class="control-segment active" id="tabSignInBtn">Sign In</button>
+        <button class="control-segment" id="tabSignUpBtn">Sign Up</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Sign In Form -->
+        <form id="signInForm" class="modal-form">
+          <p class="form-desc">Enter your registered email to join the chat.</p>
+          <div class="form-group">
+            <label for="signInEmail">Email Address</label>
+            <input type="email" id="signInEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
+          </div>
+          <div id="signInError" class="auth-error-msg"></div>
+          <button type="submit" class="ios-btn primary large-btn">Sign In</button>
+        </form>
+
+        <!-- Sign Up Form -->
+        <form id="signUpForm" class="modal-form" style="display: none;">
+          <p class="form-desc">Create an account to start sharing messages.</p>
+          <div class="form-group">
+            <label for="signUpUsername">Username / Nickname</label>
+            <input type="text" id="signUpUsername" placeholder="e.g. Min Khant" required autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="signUpEmail">Email Address</label>
+            <input type="email" id="signUpEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
+          </div>
+          
+          <div class="form-group">
+            <label>Choose Avatar Profile</label>
+            <div class="avatar-grid" id="avatarGrid">
+              <!-- Dynamically populated preset avatars plus active states -->
+            </div>
+            <div class="custom-avatar-row">
+              <label for="signUpAvatarCustom">Or Custom Avatar URL</label>
+              <input type="url" id="signUpAvatarCustom" placeholder="https://images.unsplash.com/... or leave blank" />
+            </div>
+          </div>
+          
+          <div id="signUpError" class="auth-error-msg"></div>
+          <button type="submit" class="ios-btn primary large-btn">Create Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

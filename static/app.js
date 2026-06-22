@@ -399,6 +399,42 @@ function renderReactions(msgBubble, messageId, reactions) {
   });
 }
 
+// Render desktop hover quick reaction bar
+function renderHoverReactions(msgBubble, messageId) {
+  let hoverBar = msgBubble.querySelector('.msg-hover-reactions');
+  if (!hoverBar) {
+    hoverBar = document.createElement('div');
+    hoverBar.className = 'msg-hover-reactions';
+    msgBubble.appendChild(hoverBar);
+  }
+  hoverBar.innerHTML = '';
+  
+  const emojis = ['👍', '❤️', '🔥', '😂', '👏', '🎉'];
+  emojis.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.className = 'tg-reaction-btn';
+    btn.type = 'button';
+    btn.textContent = emoji;
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (!isUserSignedIn) {
+        openAuthModal();
+        return;
+      }
+      btn.classList.add('emoji-bounce');
+      socket.send(JSON.stringify({
+        action: "react",
+        message_id: messageId,
+        emoji: emoji
+      }));
+      setTimeout(() => {
+        btn.classList.remove('emoji-bounce');
+      }, 450);
+    });
+    hoverBar.appendChild(btn);
+  });
+}
+
 // Show Telegram-style context menu
 function showContextMenu(e, messageId, isSelf) {
   e.preventDefault();
@@ -429,12 +465,20 @@ function showContextMenu(e, messageId, isSelf) {
         menu.remove();
         return;
       }
+      btn.classList.add('emoji-bounce');
       socket.send(JSON.stringify({
         action: "react",
         message_id: messageId,
         emoji: emoji
       }));
-      menu.remove();
+      
+      // Animate menu closing smoothly
+      menu.style.transition = 'opacity 0.22s, transform 0.22s';
+      menu.style.opacity = '0';
+      menu.style.transform = 'scale(0.94)';
+      setTimeout(() => {
+        menu.remove();
+      }, 220);
     });
     reactionRow.appendChild(btn);
   });
@@ -566,6 +610,11 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
     const bubble = msgDiv.querySelector('.msg-bubble');
     if (bubble && messageId) {
       renderReactions(bubble, messageId, reactions);
+
+      const isDesktop = window.matchMedia("(hover: hover)").matches;
+      if (isDesktop) {
+        renderHoverReactions(bubble, messageId);
+      }
 
       bubble.addEventListener('click', (e) => {
         e.stopPropagation();

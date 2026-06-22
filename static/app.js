@@ -355,10 +355,174 @@ function getInitials(name) {
   return name ? name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) : "G";
 }
 
-function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '') {
+// Render reactions wrapper inside the bubble container
+function renderReactions(msgBubble, messageId, reactions) {
+  let wrapper = msgBubble.querySelector('.msg-reactions-wrapper');
+  if (!wrapper) {
+    wrapper = document.createElement('div');
+    wrapper.className = 'msg-reactions-wrapper';
+    msgBubble.appendChild(wrapper);
+  }
+  wrapper.innerHTML = '';
+  if (!reactions || Object.keys(reactions).length === 0) {
+    wrapper.style.display = 'none';
+    return;
+  }
+  wrapper.style.display = 'flex';
+
+  Object.entries(reactions).forEach(([emoji, users]) => {
+    if (!users || users.length === 0) return;
+    const pill = document.createElement('div');
+    pill.className = 'msg-reaction-pill';
+    const hasReacted = users.includes(myUsername);
+    if (hasReacted) {
+      pill.classList.add('active');
+    }
+    
+    // Show list of users who reacted on hover
+    pill.title = users.join(', ');
+    
+    pill.innerHTML = `<span>${emoji}</span> <span class="pill-count">${users.length}</span>`;
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!isUserSignedIn) {
+        openAuthModal();
+        return;
+      }
+      socket.send(JSON.stringify({
+        action: "react",
+        message_id: messageId,
+        emoji: emoji
+      }));
+    });
+    wrapper.appendChild(pill);
+  });
+}
+
+// Show Telegram-style context menu
+function showContextMenu(e, messageId, isSelf) {
+  e.preventDefault();
+  
+  // Remove existing menu if any
+  const existingMenu = document.querySelector('.tg-context-menu');
+  if (existingMenu) {
+    existingMenu.remove();
+  }
+
+  // Create menu container
+  const menu = document.createElement('div');
+  menu.className = 'tg-context-menu';
+
+  // Create reaction row
+  const reactionRow = document.createElement('div');
+  reactionRow.className = 'tg-reaction-row';
+  const emojis = ['👍', '❤️', '🔥', '😂', '👏', '🎉'];
+  emojis.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.className = 'tg-reaction-btn';
+    btn.type = 'button';
+    btn.textContent = emoji;
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (!isUserSignedIn) {
+        openAuthModal();
+        menu.remove();
+        return;
+      }
+      socket.send(JSON.stringify({
+        action: "react",
+        message_id: messageId,
+        emoji: emoji
+      }));
+      menu.remove();
+    });
+    reactionRow.appendChild(btn);
+  });
+  menu.appendChild(reactionRow);
+
+  // Unsend button for self, or Copy Text for others
+  if (isSelf) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'tg-menu-item delete-item';
+    deleteBtn.type = 'button';
+    deleteBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      Unsend
+    `;
+    deleteBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      socket.send(JSON.stringify({
+        action: "delete",
+        message_id: messageId
+      }));
+      menu.remove();
+    });
+    menu.appendChild(deleteBtn);
+  } else {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'tg-menu-item';
+    copyBtn.type = 'button';
+    copyBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      Copy Text
+    `;
+    copyBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const msgEl = document.querySelector(`[data-msg-id="${messageId}"]`);
+      if (msgEl) {
+        const textEl = msgEl.querySelector('.msg-text');
+        if (textEl) {
+          navigator.clipboard.writeText(textEl.textContent).then(() => {
+            console.log("Text copied to clipboard");
+          }).catch(err => {
+            console.error("Failed to copy text: ", err);
+          });
+        }
+      }
+      menu.remove();
+    });
+    menu.appendChild(copyBtn);
+  }
+
+  // Append to body
+  document.body.appendChild(menu);
+
+  // Position menu correctly near coordinates
+  const menuWidth = menu.offsetWidth || 160;
+  const menuHeight = menu.offsetHeight || 100;
+  let left = e.clientX;
+  let top = e.clientY;
+
+  if (left + menuWidth > window.innerWidth) {
+    left = window.innerWidth - menuWidth - 10;
+  }
+  if (top + menuHeight > window.innerHeight) {
+    top = window.innerHeight - menuHeight - 10;
+  }
+  if (left < 10) left = 10;
+  if (top < 10) top = 10;
+
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+
+  menu.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+  });
+}
+
+function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}) {
   if (!chatMessages) return;
 
   const msgDiv = document.createElement("div");
+  if (messageId) {
+    msgDiv.setAttribute("data-msg-id", messageId);
+  }
 
   if (type === 'system') {
     msgDiv.className = "chat-system-message";
@@ -370,13 +534,14 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
     if (isSelf) {
       msgDiv.innerHTML = `
         <div class="msg-bubble">
-          <div class="msg-text">${text}</div>
+          <div class="msg-text"></div>
           <div class="msg-time">
             <span>${timeStr}</span>
             <span class="msg-status-ticks">✓✓</span>
           </div>
         </div>
       `;
+      msgDiv.querySelector('.msg-text').textContent = text;
     } else {
       let avatarContent = '';
       if (avatarUrl) {
@@ -389,11 +554,23 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
       msgDiv.innerHTML = `
         <div class="msg-avatar" style="background: ${avatarBg || 'var(--ios-accent)'}">${avatarContent}</div>
         <div class="msg-bubble">
-          <div class="msg-sender">${sender}</div>
-          <div class="msg-text">${text}</div>
+          <div class="msg-sender"></div>
+          <div class="msg-text"></div>
           <div class="msg-time">${timeStr}</div>
         </div>
       `;
+      msgDiv.querySelector('.msg-sender').textContent = sender;
+      msgDiv.querySelector('.msg-text').textContent = text;
+    }
+
+    const bubble = msgDiv.querySelector('.msg-bubble');
+    if (bubble && messageId) {
+      renderReactions(bubble, messageId, reactions);
+
+      bubble.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showContextMenu(e, messageId, isSelf);
+      });
     }
   }
 
@@ -444,15 +621,31 @@ function connectWebSocket() {
     try {
       const message = JSON.parse(event.data);
 
-      if (onlineCountEl && message.onlineCount !== undefined) {
-        onlineCountEl.textContent = `1,428 members, ${message.onlineCount} online`;
+      if (onlineCountEl && message.onlineCount !== undefined && message.totalUsers !== undefined) {
+        onlineCountEl.textContent = `${message.totalUsers.toLocaleString()} members, ${message.onlineCount.toLocaleString()} online`;
       }
 
       if (message.type === 'system') {
         appendChatMessage("System", message.text, false, '', 'system');
       } else if (message.type === 'message') {
         const isSelf = message.sender === myUsername;
-        appendChatMessage(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url);
+        appendChatMessage(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url, message.message_id, message.reactions);
+      } else if (message.type === 'delete') {
+        const msgEl = chatMessages.querySelector(`[data-msg-id="${message.message_id}"]`);
+        if (msgEl) {
+          msgEl.classList.add('deleting');
+          setTimeout(() => {
+            msgEl.remove();
+          }, 350);
+        }
+      } else if (message.type === 'react_update') {
+        const msgEl = chatMessages.querySelector(`[data-msg-id="${message.message_id}"]`);
+        if (msgEl) {
+          const bubble = msgEl.querySelector('.msg-bubble');
+          if (bubble) {
+            renderReactions(bubble, message.message_id, message.reactions);
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to parse socket message:", err);
@@ -697,6 +890,23 @@ if (chatSendButton && chatMessageInput) {
   chatMessageInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       handleSendChatMessage();
+    }
+  });
+}
+
+// Global click and scroll listeners to close context menu
+document.addEventListener('click', () => {
+  const existingMenu = document.querySelector('.tg-context-menu');
+  if (existingMenu) {
+    existingMenu.remove();
+  }
+});
+
+if (chatMessages) {
+  chatMessages.addEventListener('scroll', () => {
+    const existingMenu = document.querySelector('.tg-context-menu');
+    if (existingMenu) {
+      existingMenu.remove();
     }
   });
 }

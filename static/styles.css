@@ -1480,3 +1480,179 @@ html, body {
 [data-theme="light"] .chat-system-message span {
   background-color: rgba(255, 255, 255, 0.6);
 }
+
+/* ========== Telegram-style Reactions & Context Menu ========== */
+
+.tg-context-menu {
+  position: fixed;
+  background: rgba(30, 30, 30, 0.85);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 10000;
+  transform-origin: top left;
+  animation: menuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 140px;
+}
+
+[data-theme="light"] .tg-context-menu {
+  background: rgba(255, 255, 255, 0.9);
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes menuPop {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.tg-reaction-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 0.5px solid var(--ios-border);
+  margin-bottom: 2px;
+}
+
+.tg-reaction-btn {
+  font-size: 18px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 2px;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.tg-reaction-btn:hover {
+  transform: scale(1.3) translateY(-3px);
+}
+
+.tg-reaction-btn:active {
+  transform: scale(0.9);
+}
+
+.tg-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ios-text);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+  width: calc(100% - 4px);
+}
+
+.tg-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .tg-menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tg-menu-item.delete-item {
+  color: #ff3b30;
+}
+
+.tg-menu-item.delete-item:hover {
+  background-color: rgba(255, 59, 48, 0.12);
+}
+
+/* Reactions Wrapper under Bubbles */
+.msg-reactions-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.msg-reaction-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 9px;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--ios-text-secondary);
+  animation: reactionPop 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+[data-theme="light"] .msg-reaction-pill {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.msg-reaction-pill:hover {
+  transform: scale(1.05);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="light"] .msg-reaction-pill:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.msg-reaction-pill.active {
+  background-color: rgba(var(--ios-accent-rgb), 0.12);
+  border-color: var(--ios-accent);
+  color: var(--ios-accent);
+}
+
+@keyframes reactionPop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Deleted messages smooth collapse transition */
+.chat-message {
+  transition: max-height 0.32s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.25s ease-out, 
+              padding-top 0.32s cubic-bezier(0.16, 1, 0.3, 1), 
+              padding-bottom 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-top 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-bottom 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chat-message.deleting {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none;
+}
+
+/* Sent message reaction pill contrast styling */
+.chat-message.sent .msg-reaction-pill {
+  background-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.chat-message.sent .msg-reaction-pill:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+.chat-message.sent .msg-reaction-pill.active {
+  background-color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #ffffff;
+}
+

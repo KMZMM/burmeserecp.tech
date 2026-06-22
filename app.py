@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 from io import BytesIO
+import json
 import os
 import sqlite3
 from typing import Any
 import urllib.request
 import urllib.parse
+import uuid
 
 import edge_tts
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -45,6 +47,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+DB_PATH = "users.db"
+
+def get_total_users_count() -> int:
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except Exception:
+        return 3
+
 # ===== Connection Manager for Real-Time Live Chat =====
 class ConnectionManager:
     def __init__(self):
@@ -63,6 +78,7 @@ class ConnectionManager:
 
     async def broadcast(self, message: dict):
         message["onlineCount"] = self.get_online_count()
+        message["totalUsers"] = get_total_users_count()
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
@@ -72,29 +88,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 MAX_RECENT_MESSAGES = 30
-recent_messages: list[dict] = [
-    {
-        "type": "message",
-        "sender": "Min Khant",
-        "text": "Hey everyone! This voice studio is amazing! The Burmese voices sound so natural. 🔥",
-        "avatarBg": "linear-gradient(135deg, #ff9500, #ff5e3a)",
-        "avatar_url": "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=80&h=80&q=80"
-    },
-    {
-        "type": "message",
-        "sender": "Su Sandar",
-        "text": "Has anyone tried adjusting the pitch for storytelling? What's the best setting for recaps?",
-        "avatarBg": "linear-gradient(135deg, #34c759, #4cd964)",
-        "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80"
-    },
-    {
-        "type": "message",
-        "sender": "Aung Kyaw",
-        "text": "I usually use +10% speed and -5% pitch for recaps, works perfectly! 🎙️",
-        "avatarBg": "linear-gradient(135deg, #007aff, #0584ff)",
-        "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80"
-    }
-]
+recent_messages: list[dict] = []
 
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
@@ -113,7 +107,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
         "sender": "System"
     })
     try:
-        import json
         while True:
             data_str = await websocket.receive_text()
             try:
@@ -121,12 +114,55 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
             except Exception:
                 data = {"text": data_str, "avatarBg": ""}
             
+            action = data.get("action")
+            if action == "delete":
+                msg_id = data.get("message_id")
+                found_msg = None
+                for msg in recent_messages:
+                    if msg.get("message_id") == msg_id:
+                        found_msg = msg
+                        break
+                if found_msg and found_msg.get("sender") == username:
+                    recent_messages.remove(found_msg)
+                    await manager.broadcast({
+                        "type": "delete",
+                        "message_id": msg_id
+                    })
+                continue
+                
+            elif action == "react":
+                msg_id = data.get("message_id")
+                emoji = data.get("emoji")
+                if msg_id and emoji:
+                    for msg in recent_messages:
+                        if msg.get("message_id") == msg_id:
+                            reactions = msg.setdefault("reactions", {})
+                            user_list = reactions.setdefault(emoji, [])
+                            if username in user_list:
+                                user_list.remove(username)
+                                if not user_list:
+                                    del reactions[emoji]
+                            else:
+                                user_list.append(username)
+                            
+                            await manager.broadcast({
+                                "type": "react_update",
+                                "message_id": msg_id,
+                                "reactions": reactions
+                            })
+                            break
+                continue
+
+            # Normal message broadcast
+            msg_id = str(uuid.uuid4())
             msg_payload = {
                 "type": "message",
+                "message_id": msg_id,
                 "sender": username,
                 "text": data.get("text", "").strip(),
                 "avatarBg": data.get("avatarBg", ""),
-                "avatar_url": data.get("avatar_url", "")
+                "avatar_url": data.get("avatar_url", ""),
+                "reactions": {}
             }
             recent_messages.append(msg_payload)
             if len(recent_messages) > MAX_RECENT_MESSAGES:
@@ -143,7 +179,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
     except Exception:
         manager.disconnect(websocket)
 
-DB_PATH = "users.db"
+# DB_PATH defined globally at the top
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -237,6 +273,14 @@ def sort_key(voice: dict[str, Any]) -> tuple[int, str]:
 
 
 # Root index handler replaced by StaticFiles fallback
+
+@app.get("/static/index.html")
+async def redirect_static_index():
+    return RedirectResponse(url="/")
+
+@app.get("/index.html")
+async def redirect_index_html():
+    return RedirectResponse(url="/")
 
 
 @app.get("/api/health")

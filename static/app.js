@@ -1,3 +1,28 @@
+// Safe localStorage wrapper to prevent SecurityError in incognito/private modes
+const safeStorage = {
+  getItem(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  },
+  setItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      // Ignore write errors in private mode
+    }
+  },
+  removeItem(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+};
+
 // ===== DOM References =====
 const form = document.getElementById("ttsForm");
 const textInput = document.getElementById("text");
@@ -284,18 +309,18 @@ const chatInputArea = document.getElementById("chatInputArea");
 const lockSignInBtn = document.getElementById("lockSignInBtn");
 
 // Session State
-let isUserSignedIn = localStorage.getItem("tg_signed_in") === "true";
+let isUserSignedIn = safeStorage.getItem("tg_signed_in") === "true";
 let myUsername = "";
 let myAvatarUrl = "";
 let myEmail = "";
 
 function initUserSession() {
-  isUserSignedIn = localStorage.getItem("tg_signed_in") === "true";
+  isUserSignedIn = safeStorage.getItem("tg_signed_in") === "true";
   
   if (isUserSignedIn) {
-    myUsername = localStorage.getItem("tg_username");
-    myAvatarUrl = localStorage.getItem("tg_avatar_url") || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80";
-    myEmail = localStorage.getItem("tg_email");
+    myUsername = safeStorage.getItem("tg_username");
+    myAvatarUrl = safeStorage.getItem("tg_avatar_url") || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80";
+    myEmail = safeStorage.getItem("tg_email");
     
     // Unlock Chat Input
     if (chatInputLockOverlay) chatInputLockOverlay.style.display = "none";
@@ -640,7 +665,7 @@ function connectWebSocket() {
   
   // Set host and protocol. If local, route to online production websocket server.
   const wsProtocol = isLocal ? "wss:" : (window.location.protocol === "https:" ? "wss:" : "ws:");
-  const wsHost = isLocal ? "burmeserecp.tech" : window.location.host;
+  const wsHost = isLocal ? "burmeserecap.tech" : window.location.host;
   
   const wsUsername = isUserSignedIn ? myUsername : `Guest_${Math.floor(100 + Math.random() * 900)}`;
   const wsUrl = `${wsProtocol}//${wsHost}/ws/chat?username=${encodeURIComponent(wsUsername)}`;
@@ -857,10 +882,10 @@ if (signInForm) {
       return res.json();
     })
     .then((profile) => {
-      localStorage.setItem("tg_signed_in", "true");
-      localStorage.setItem("tg_username", profile.username);
-      localStorage.setItem("tg_avatar_url", profile.avatar_url);
-      localStorage.setItem("tg_email", profile.email);
+      safeStorage.setItem("tg_signed_in", "true");
+      safeStorage.setItem("tg_username", profile.username);
+      safeStorage.setItem("tg_avatar_url", profile.avatar_url);
+      safeStorage.setItem("tg_email", profile.email);
       
       initUserSession();
       closeAuthModal();
@@ -905,10 +930,10 @@ if (signUpForm) {
       return res.json();
     })
     .then((profile) => {
-      localStorage.setItem("tg_signed_in", "true");
-      localStorage.setItem("tg_username", profile.username);
-      localStorage.setItem("tg_avatar_url", profile.avatar_url);
-      localStorage.setItem("tg_email", profile.email);
+      safeStorage.setItem("tg_signed_in", "true");
+      safeStorage.setItem("tg_username", profile.username);
+      safeStorage.setItem("tg_avatar_url", profile.avatar_url);
+      safeStorage.setItem("tg_email", profile.email);
       
       initUserSession();
       closeAuthModal();
@@ -923,10 +948,10 @@ if (signUpForm) {
 
 function handleSignOut() {
   if (confirm(`Do you want to sign out from ${myUsername}?`)) {
-    localStorage.removeItem("tg_signed_in");
-    localStorage.removeItem("tg_username");
-    localStorage.removeItem("tg_avatar_url");
-    localStorage.removeItem("tg_email");
+    safeStorage.removeItem("tg_signed_in");
+    safeStorage.removeItem("tg_username");
+    safeStorage.removeItem("tg_avatar_url");
+    safeStorage.removeItem("tg_email");
     
     initUserSession();
     

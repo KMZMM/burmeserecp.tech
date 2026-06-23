@@ -1960,20 +1960,15 @@ body[data-theme="light"] .moon-icon {
   border: none;
   cursor: pointer;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s, transform 0.2s;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .picker-emoji-btn:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  transform: scale(1.18);
-}
-
-[data-theme="light"] .picker-emoji-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(1.22);
 }
 
 .picker-emoji-btn img {
@@ -2042,6 +2037,28 @@ body[data-theme="light"] .moon-icon {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-top: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 8px;
+  scrollbar-width: none; /* Hide default scrollbar */
+}
+
+.pricing-grid::-webkit-scrollbar {
+  display: none; /* Hide Chrome/Safari scrollbar */
+}
+
+@media (max-width: 640px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-height: 60vh;
+    padding: 0;
+  }
+  .ios-modal.plans-modal {
+    width: 92% !important;
+    max-width: 440px !important;
+    padding: 16px !important;
+    margin: auto !important;
+  }
 }
 
 .pricing-card {
@@ -2140,6 +2157,21 @@ body[data-theme="light"] .moon-icon {
 
 .ios-modal.plans-modal {
   max-width: 780px;
+  box-sizing: border-box;
+}
+
+/* Download button downloading animation state */
+#downloadLink.downloading-active {
+  pointer-events: none !important;
+  opacity: 0.6 !important;
+  background-color: var(--ios-border) !important;
+  animation: downloadPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes downloadPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
 }
 
 /* ========== Dashboard Portal View ========== */

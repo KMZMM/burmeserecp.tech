@@ -357,6 +357,50 @@ if (miniDismissBtn) {
   });
 }
 
+// Prevent double download spam by intercepting and showing "Downloading..."
+if (downloadLink) {
+  downloadLink.addEventListener("click", async (e) => {
+    // If we've already generated the blob, let's grab it once and download
+    if (downloadLink.classList.contains("disabled") || downloadLink.classList.contains("downloading-active")) {
+      e.preventDefault();
+      return;
+    }
+    
+    const audioUrl = downloadLink.getAttribute("href");
+    if (!audioUrl) return;
+    
+    // Prevent default trigger
+    e.preventDefault();
+    
+    // Lock link state
+    downloadLink.classList.add("downloading-active");
+    const originalTitle = downloadLink.getAttribute("title");
+    downloadLink.setAttribute("title", currentLang === "en" ? "Downloading..." : "ဒေါင်းလုပ်ဆွဲနေသည်...");
+    showToast(currentLang === "en" ? "Downloading audio..." : "အသံဖိုင်ဒေါင်းလုဒ်လုပ်နေသည်...");
+    
+    try {
+      const res = await fetch(audioUrl);
+      const blob = await res.blob();
+      const tempUrl = URL.createObjectURL(blob);
+      const tempLink = document.createElement("a");
+      tempLink.href = tempUrl;
+      tempLink.download = downloadLink.getAttribute("download") || "burmeserecp-tts.mp3";
+      document.body.appendChild(tempLink);
+      tempLink.click();
+      document.body.removeChild(tempLink);
+      URL.revokeObjectURL(tempUrl);
+    } catch (err) {
+      console.error("Audio download error:", err);
+    } finally {
+      // Release download status
+      setTimeout(() => {
+        downloadLink.classList.remove("downloading-active");
+        downloadLink.setAttribute("title", originalTitle);
+      }, 1000);
+    }
+  });
+}
+
 // ===== Mini Player Visualizer Sync =====
 if (miniBars && audioPlayer) {
   audioPlayer.addEventListener("play", () => {

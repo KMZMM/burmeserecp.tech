@@ -450,7 +450,7 @@ function updateLanguage(lang) {
       if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
         el.placeholder = translation;
       } else {
-        el.textContent = translation;
+        el.innerHTML = parseMessageText(translation);
       }
     }
   });
@@ -497,7 +497,7 @@ function initUserSession() {
     
     // Update Header Button to Sign Out
     if (loginHeaderBtn) {
-      loginHeaderBtn.innerHTML = `<img src="${myAvatarUrl}" class="account-pic" style="width:16px;height:16px;border:none;margin-right:4px;border-radius:50%;object-fit:cover;" /> ${TRANSLATIONS[currentLang]["logout-btn"]}`;
+      loginHeaderBtn.innerHTML = parseMessageText(`<img src="${myAvatarUrl}" class="account-pic" style="width:16px;height:16px;border:none;margin-right:4px;border-radius:50%;object-fit:cover;" /> ${TRANSLATIONS[currentLang]["logout-btn"]}`);
       loginHeaderBtn.title = currentLang === "en" ? `Signed in as ${myUsername}. Click to Sign Out.` : `${myUsername} အဖြစ် အကောင့်ဝင်ထားသည်။ ထွက်ရန် နှိပ်ပါ။`;
     }
   } else {
@@ -561,7 +561,11 @@ const animatedEmojiMap = {
   "🤩": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Star%20Struck.webp",
   "😜": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Winking%20Face%20With%20Tongue.webp",
   "😎": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Sunglasses.webp",
-  "💩": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Pile%20Of%20Poo.webp"
+  "💩": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Pile%20Of%20Poo.webp",
+  "🎙️": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Studio%20Microphone.webp",
+  "🐢": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Turtle.webp",
+  "🎵": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Musical%20Note.webp",
+  "👤": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Bust%20In%20Silhouette.webp"
 };
 
 function emojiToHex(emoji) {
@@ -1260,6 +1264,11 @@ if (pickerGrid) {
 if (emojiTrigger && emojiPicker) {
   // Render trigger icon using the high-quality animated WebP emoji
   emojiTrigger.innerHTML = getEmojiHTML("😊", 20);
+  
+  const attachTrigger = document.querySelector(".attach-trigger");
+  if (attachTrigger) {
+    attachTrigger.innerHTML = getEmojiHTML("📎", 18);
+  }
 
   emojiTrigger.addEventListener("click", (e) => {
     e.stopPropagation();

@@ -1531,12 +1531,22 @@ body[data-theme="light"] .moon-icon {
 }
 
 .tts-back-btn {
-  transition: transform 0.2s, opacity 0.2s;
+  background: var(--ios-surface) !important;
+  border: 0.5px solid var(--ios-border) !important;
+  color: var(--ios-text) !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s, box-shadow 0.2s !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
 }
 
 .tts-back-btn:hover {
-  transform: translateX(-4px);
-  opacity: 0.8;
+  transform: scale(1.08) translateX(-2px) !important;
+  background-color: var(--ios-surface-hover) !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.14) !important;
+  color: var(--ios-accent) !important;
+}
+
+.tts-back-btn:active {
+  transform: scale(0.95) !important;
 }
 
 @media (max-width: 680px) {

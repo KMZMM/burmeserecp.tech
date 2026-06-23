@@ -133,6 +133,7 @@ body[data-theme="light"] {
   animation: shineTitle 5s linear infinite;
   display: inline-block;
   padding-right: 8px;
+  white-space: nowrap;
 }
 
 body:not([data-theme="light"]) .nav-title {
@@ -141,6 +142,17 @@ body:not([data-theme="light"]) .nav-title {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+@media (max-width: 480px) {
+  .nav-title {
+    font-size: 15px;
+    letter-spacing: -0.3px;
+  }
+  .navbar-logo-img {
+    width: 22px !important;
+    height: 22px !important;
+  }
 }
 
 @keyframes shineTitle {
@@ -2210,10 +2222,55 @@ body[data-theme="light"] .moon-icon {
 }
 
 @media (max-width: 680px) {
+  .portal-container {
+    padding: 60px 12px 40px;
+    min-height: calc(100vh - 80px);
+  }
+  .portal-logo-img {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 12px;
+  }
+  .portal-logo {
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+  .portal-subtitle {
+    font-size: 13px;
+    padding: 0 16px;
+  }
+  .portal-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    padding: 0 4px;
+  }
   .portal-card {
-    max-width: 260px;
-    aspect-ratio: 1 / 1;
-    padding: 24px 16px;
+    padding: 16px 8px;
+    max-width: none !important;
+    aspect-ratio: 1 / 1.1;
+  }
+  .portal-card-icon {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+  }
+  .portal-card-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+  .portal-card-title {
+    font-size: 13px !important;
+    margin-bottom: 4px !important;
+  }
+  .portal-card-desc {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 

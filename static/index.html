@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
   <!-- Local auth flow triggers -->
 </head>
 <body>
@@ -29,6 +29,7 @@
           <button class="control-segment active" id="langEnBtn">EN</button>
           <button class="control-segment" id="langMmBtn">မြန်မာ</button>
         </div>
+        <button class="ios-btn icon-only" id="premiumBtn" aria-label="Membership Plans">👑</button>
         <button class="ios-btn icon-only" onclick="toggleTheme()" aria-label="Toggle light/dark theme">🌓</button>
       </div>
     </div>
@@ -116,48 +117,6 @@
           </div>
         </section>
 
-        <!-- Settings Block: Membership Plans (App Store Style Pricing) -->
-        <section class="ios-settings-group">
-          <div class="group-label" data-translate="pricing-title">MEMBERSHIP PLANS</div>
-          <div class="pricing-grid">
-            <div class="pricing-card">
-              <div class="plan-badge" data-translate="plan-basic-badge">Starter</div>
-              <h3 class="plan-name" data-translate="plan-basic-name">Basic</h3>
-              <div class="plan-price">5,000 <span class="currency">MMK</span></div>
-              <div class="plan-period" data-translate="plan-period-month">/ month</div>
-              <ul class="plan-features">
-                <li data-translate="plan-feature-1">100,000 Characters</li>
-                <li data-translate="plan-feature-2">Standard Voices</li>
-                <li data-translate="plan-feature-3">Email Support</li>
-              </ul>
-              <button type="button" class="ios-btn secondary plan-btn" data-translate="plan-choose">Select Plan</button>
-            </div>
-            <div class="pricing-card popular">
-              <div class="plan-badge" data-translate="plan-premium-badge">Popular</div>
-              <h3 class="plan-name" data-translate="plan-premium-name">Premium</h3>
-              <div class="plan-price">15,000 <span class="currency">MMK</span></div>
-              <div class="plan-period" data-translate="plan-period-month">/ month</div>
-              <ul class="plan-features">
-                <li data-translate="plan-feature-4">500,000 Characters</li>
-                <li data-translate="plan-feature-5">Premium Neural Voices</li>
-                <li data-translate="plan-feature-6">Priority Support</li>
-              </ul>
-              <button type="button" class="ios-btn primary plan-btn" data-translate="plan-choose">Select Plan</button>
-            </div>
-            <div class="pricing-card">
-              <div class="plan-badge" data-translate="plan-pro-badge">Unlimited</div>
-              <h3 class="plan-name" data-translate="plan-pro-name">Pro</h3>
-              <div class="plan-price">30,000 <span class="currency">MMK</span></div>
-              <div class="plan-period" data-translate="plan-period-month">/ month</div>
-              <ul class="plan-features">
-                <li data-translate="plan-feature-7">Unlimited Characters</li>
-                <li data-translate="plan-feature-8">All Premium Voices</li>
-                <li data-translate="plan-feature-9">24/7 Dedicated Support</li>
-              </ul>
-              <button type="button" class="ios-btn secondary plan-btn" data-translate="plan-choose">Select Plan</button>
-            </div>
-          </div>
-        </section>
 
         <!-- Action Button: Generate -->
         <div class="action-container">
@@ -287,6 +246,56 @@
     } catch (e) {}
   </script>
 
+  <!-- iOS Membership Plans Modal -->
+  <div class="ios-modal-overlay" id="plansModal" style="display: none;">
+    <div class="ios-modal plans-modal">
+      <div class="modal-header">
+        <span class="modal-title" data-translate="pricing-title">MEMBERSHIP PLANS</span>
+        <button class="modal-close-btn" id="closePlansModalBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="pricing-grid">
+          <div class="pricing-card">
+            <div class="plan-badge" data-translate="plan-basic-badge">Starter</div>
+            <h3 class="plan-name" data-translate="plan-basic-name">Basic</h3>
+            <div class="plan-price">5,000 <span class="currency">MMK</span></div>
+            <div class="plan-period" data-translate="plan-period-month">/ month</div>
+            <ul class="plan-features">
+              <li data-translate="plan-feature-1">100,000 Characters</li>
+              <li data-translate="plan-feature-2">Standard Voices</li>
+              <li data-translate="plan-feature-3">Email Support</li>
+            </ul>
+            <button type="button" class="ios-btn secondary plan-btn" data-translate="plan-choose">Select Plan</button>
+          </div>
+          <div class="pricing-card popular">
+            <div class="plan-badge" data-translate="plan-premium-badge">Popular</div>
+            <h3 class="plan-name" data-translate="plan-premium-name">Premium</h3>
+            <div class="plan-price">15,000 <span class="currency">MMK</span></div>
+            <div class="plan-period" data-translate="plan-period-month">/ month</div>
+            <ul class="plan-features">
+              <li data-translate="plan-feature-4">500,000 Characters</li>
+              <li data-translate="plan-feature-5">Premium Neural Voices</li>
+              <li data-translate="plan-feature-6">Priority Support</li>
+            </ul>
+            <button type="button" class="ios-btn primary plan-btn" data-translate="plan-choose">Select Plan</button>
+          </div>
+          <div class="pricing-card">
+            <div class="plan-badge" data-translate="plan-pro-badge">Unlimited</div>
+            <h3 class="plan-name" data-translate="plan-pro-name">Pro</h3>
+            <div class="plan-price">30,000 <span class="currency">MMK</span></div>
+            <div class="plan-period" data-translate="plan-period-month">/ month</div>
+            <ul class="plan-features">
+              <li data-translate="plan-feature-7">Unlimited Characters</li>
+              <li data-translate="plan-feature-8">All Premium Voices</li>
+              <li data-translate="plan-feature-9">24/7 Dedicated Support</li>
+            </ul>
+            <button type="button" class="ios-btn secondary plan-btn" data-translate="plan-choose">Select Plan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- iOS Premium Login/Signup Modal -->
   <div class="ios-modal-overlay" id="authModal">
     <div class="ios-modal">
@@ -343,6 +352,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=5" defer></script>
+  <script src="app.js?v=6" defer></script>
 </body>
 </html>

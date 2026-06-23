@@ -982,6 +982,23 @@ const PRESET_AVATARS = [
   "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&h=80&q=80"
 ];
 
+// ===== Membership Plans Modal Flow =====
+const plansModal = document.getElementById("plansModal");
+const premiumBtn = document.getElementById("premiumBtn");
+const closePlansModalBtn = document.getElementById("closePlansModalBtn");
+
+function openPlansModal() {
+  if (plansModal) {
+    plansModal.style.display = "flex";
+  }
+}
+
+function closePlansModal() {
+  if (plansModal) {
+    plansModal.style.display = "none";
+  }
+}
+
 // ===== Local Authentication Modal Flow =====
 const authModal = document.getElementById("authModal");
 const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
@@ -1048,6 +1065,28 @@ function renderPresetAvatars() {
 // Event bindings for Modal
 if (closeAuthModalBtn) {
   closeAuthModalBtn.addEventListener("click", closeAuthModal);
+}
+if (authModal) {
+  authModal.addEventListener("click", (e) => {
+    if (e.target === authModal) {
+      closeAuthModal();
+    }
+  });
+}
+
+// Event bindings for Plans Modal
+if (premiumBtn) {
+  premiumBtn.addEventListener("click", openPlansModal);
+}
+if (closePlansModalBtn) {
+  closePlansModalBtn.addEventListener("click", closePlansModal);
+}
+if (plansModal) {
+  plansModal.addEventListener("click", (e) => {
+    if (e.target === plansModal) {
+      closePlansModal();
+    }
+  });
 }
 if (tabSignInBtn) {
   tabSignInBtn.addEventListener("click", () => switchTab("signin"));
@@ -1263,6 +1302,13 @@ loadVoices();
 updateLanguage(currentLang);
 connectWebSocket();
 renderPresetAvatars();
+
+// Show plans modal automatically on first visit
+const hasSeenPlans = safeStorage.getItem("has_seen_plans_v2");
+if (!hasSeenPlans) {
+  openPlansModal();
+  safeStorage.setItem("has_seen_plans_v2", "true");
+}
 
 // Scroll to bottom of chat on page load
 if (chatMessages) {

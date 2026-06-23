@@ -1956,5 +1956,9 @@ html, body {
   margin-top: auto;
 }
 
+.ios-modal.plans-modal {
+  max-width: 780px;
+}
+
 
 

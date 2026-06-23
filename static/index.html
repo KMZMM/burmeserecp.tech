@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
   <!-- Local auth flow triggers -->
 </head>
 <body>
@@ -23,9 +23,13 @@
   <!-- iOS Frosted Header Nav Bar -->
   <header class="ios-navbar">
     <div class="nav-container">
-      <span class="nav-title">🎙️ Voice Studio</span>
+      <span class="nav-title" data-translate="nav-title">🎙️ Voice Studio</span>
       <div class="nav-actions">
-        <button class="ios-btn secondary" id="sampleButton">Try Example</button>
+        <div class="ios-segmented-control header-lang-selector">
+          <button class="control-segment active" id="langEnBtn">EN</button>
+          <button class="control-segment" id="langMmBtn">မြန်မာ</button>
+        </div>
+        <button class="ios-btn secondary" id="sampleButton" data-translate="sample-btn">Try Example</button>
         <button class="ios-btn icon-only" onclick="toggleTheme()" aria-label="Toggle light/dark theme">🌓</button>
       </div>
     </div>
@@ -37,8 +41,8 @@
       
       <!-- Hero Header -->
       <header class="app-header">
-        <h1 class="app-title">Voice Generator</h1>
-        <p class="app-subtitle">Create natural-sounding voiceovers instantly using advanced text-to-speech engine.</p>
+        <h1 class="app-title" data-translate="app-title">Voice Generator</h1>
+        <p class="app-subtitle" data-translate="app-subtitle">Create natural-sounding voiceovers instantly using advanced text-to-speech engine.</p>
       </header>
 
       <form id="ttsForm" class="ios-form">
@@ -46,7 +50,7 @@
         <!-- Card: Text Composer (Apple Notes Style) -->
         <section class="ios-card composer-card">
           <div class="card-header">
-            <span class="section-title">SCRIPT</span>
+            <span class="section-title" data-translate="script-title">SCRIPT</span>
             <span id="charCount" class="character-count">0 / 5000</span>
           </div>
           <div class="textarea-container">
@@ -55,6 +59,7 @@
               name="text"
               maxlength="5000"
               placeholder="Type or paste your script here..."
+              data-translate="script-placeholder"
               required
             ></textarea>
           </div>
@@ -62,7 +67,7 @@
 
         <!-- Settings Block: Voice Select (iOS Settings Style) -->
         <section class="ios-settings-group">
-          <div class="group-label">VOICE SELECTOR</div>
+          <div class="group-label" data-translate="voice-selector-label">VOICE SELECTOR</div>
           
           <div class="ios-card list-card">
             <!-- Voice List Container -->
@@ -82,13 +87,13 @@
 
         <!-- Settings Block: Fine Tuning (Control Center Style Sliders) -->
         <section class="ios-settings-group">
-          <div class="group-label">TUNING CONTROL</div>
+          <div class="group-label" data-translate="tuning-control-label">TUNING CONTROL</div>
 
           <div class="ios-card sliders-card">
             <!-- Speed Control -->
             <div class="slider-row">
               <div class="slider-info">
-                <span class="slider-label">🐢 Speed</span>
+                <span class="slider-label" data-translate="speed-label">🐢 Speed</span>
                 <span class="slider-value-badge" id="rateValue">0%</span>
               </div>
               <div class="slider-track-wrapper">
@@ -102,7 +107,7 @@
             <!-- Pitch Control -->
             <div class="slider-row">
               <div class="slider-info">
-                <span class="slider-label">🎵 Pitch</span>
+                <span class="slider-label" data-translate="pitch-label">🎵 Pitch</span>
                 <span class="slider-value-badge" id="pitchValue">0Hz</span>
               </div>
               <div class="slider-track-wrapper">
@@ -116,7 +121,7 @@
         <div class="action-container">
           <button class="ios-btn primary large-btn" id="generateButton" type="submit">
             <span class="btn-icon">▶</span>
-            <span>Generate Voice</span>
+            <span data-translate="generate-btn">Generate Voice</span>
           </button>
         </div>
 
@@ -130,7 +135,7 @@
         <div class="chat-header-info">
           <div class="chat-avatar">💬</div>
           <div class="chat-meta">
-            <div class="chat-title">BurmeseRecap Community 🇲🇲</div>
+            <div class="chat-title" data-translate="chat-title">BurmeseRecap Community 🇲🇲</div>
             <div class="chat-status">
               <span class="status-dot"></span>
               <span id="onlineCount">1,428 members, 84 online</span>
@@ -138,7 +143,7 @@
           </div>
         </div>
         <div class="chat-actions">
-          <button class="chat-action-btn login-trigger" id="loginHeaderBtn" title="Sign In / Sign Up">👤 Sign In</button>
+          <button class="chat-action-btn login-trigger" id="loginHeaderBtn" title="Sign In / Sign Up" data-translate="login-btn">👤 Sign In</button>
           <button class="chat-action-btn" aria-label="More options">⋮</button>
         </div>
       </div>
@@ -162,8 +167,8 @@
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span class="lock-text">Sign in to send messages</span>
-          <button class="ios-btn primary small-btn" id="lockSignInBtn">Sign In / Sign Up</button>
+          <span class="lock-text" data-translate="lock-text">Sign in to send messages</span>
+          <button class="ios-btn primary small-btn" id="lockSignInBtn" data-translate="lock-signin-btn">Sign In / Sign Up</button>
         </div>
 
         <!-- Chat Input Bar -->
@@ -244,58 +249,58 @@
   <div class="ios-modal-overlay" id="authModal">
     <div class="ios-modal">
       <div class="modal-header">
-        <span class="modal-title">Community Account</span>
+        <span class="modal-title" data-translate="modal-title">Community Account</span>
         <button class="modal-close-btn" id="closeAuthModalBtn">&times;</button>
       </div>
       
       <!-- iOS Segmented Control Tab Switcher -->
       <div class="ios-segmented-control">
-        <button class="control-segment active" id="tabSignInBtn">Sign In</button>
-        <button class="control-segment" id="tabSignUpBtn">Sign Up</button>
+        <button class="control-segment active" id="tabSignInBtn" data-translate="tab-signin">Sign In</button>
+        <button class="control-segment" id="tabSignUpBtn" data-translate="tab-signup">Sign Up</button>
       </div>
 
       <div class="modal-body">
         <!-- Sign In Form -->
         <form id="signInForm" class="modal-form">
-          <p class="form-desc">Enter your registered email to join the chat.</p>
+          <p class="form-desc" data-translate="signin-desc">Enter your registered email to join the chat.</p>
           <div class="form-group">
-            <label for="signInEmail">Email Address</label>
+            <label for="signInEmail" data-translate="label-email">Email Address</label>
             <input type="email" id="signInEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
           </div>
           <div id="signInError" class="auth-error-msg"></div>
-          <button type="submit" class="ios-btn primary large-btn">Sign In</button>
+          <button type="submit" class="ios-btn primary large-btn" data-translate="btn-signin">Sign In</button>
         </form>
 
         <!-- Sign Up Form -->
         <form id="signUpForm" class="modal-form" style="display: none;">
-          <p class="form-desc">Create an account to start sharing messages.</p>
+          <p class="form-desc" data-translate="signup-desc">Create an account to start sharing messages.</p>
           <div class="form-group">
-            <label for="signUpUsername">Username / Nickname</label>
+            <label for="signUpUsername" data-translate="label-username">Username / Nickname</label>
             <input type="text" id="signUpUsername" placeholder="e.g. Min Khant" required autocomplete="username" />
           </div>
           <div class="form-group">
-            <label for="signUpEmail">Email Address</label>
+            <label for="signUpEmail" data-translate="label-email">Email Address</label>
             <input type="email" id="signUpEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
           </div>
           
           <div class="form-group">
-            <label>Choose Avatar Profile</label>
+            <label data-translate="label-avatar">Choose Avatar Profile</label>
             <div class="avatar-grid" id="avatarGrid">
               <!-- Dynamically populated preset avatars plus active states -->
             </div>
             <div class="custom-avatar-row">
-              <label for="signUpAvatarCustom">Or Custom Avatar URL</label>
+              <label for="signUpAvatarCustom" data-translate="label-custom-avatar">Or Custom Avatar URL</label>
               <input type="url" id="signUpAvatarCustom" placeholder="https://images.unsplash.com/... or leave blank" />
             </div>
           </div>
           
           <div id="signUpError" class="auth-error-msg"></div>
-          <button type="submit" class="ios-btn primary large-btn">Create Account</button>
+          <button type="submit" class="ios-btn primary large-btn" data-translate="btn-signup">Create Account</button>
         </form>
       </div>
     </div>
   </div>
 
-  <script src="app.js?v=3" defer></script>
+  <script src="app.js?v=4" defer></script>
 </body>
 </html>

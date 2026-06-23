@@ -121,8 +121,8 @@ function renderVoiceCards() {
     more.className = "spotlight-card";
     more.innerHTML = `
       <div class="spotlight-emoji">➕</div>
-      <div class="spotlight-name">More Voices</div>
-      <div class="spotlight-lang">${options.length - 15} hidden</div>
+      <div class="spotlight-name">${TRANSLATIONS[currentLang]["more-voices"]}</div>
+      <div class="spotlight-lang">${options.length - 15} ${TRANSLATIONS[currentLang]["hidden-voices"]}</div>
     `;
     more.addEventListener("click", () => {
       voiceScroller.innerHTML = "";
@@ -167,7 +167,7 @@ function createVoiceCard(option, index) {
 // ===== Load voices from API =====
 async function loadVoices() {
   if (!voiceSelect) return;
-  voiceSelect.innerHTML = `<option>Loading voices...</option>`;
+  voiceSelect.innerHTML = `<option>${currentLang === 'en' ? 'Loading voices...' : 'အသံများ တင်နေသည်...'}</option>`;
   try {
     const response = await fetch("/api/voices");
     if (!response.ok) throw new Error("Could not load voices.");
@@ -190,16 +190,16 @@ async function loadVoices() {
     if (preferredVoice) preferredVoice.selected = true;
     updateLocaleHint();
     renderVoiceCards();
-    setStatus("Studio ready — pick a voice and start creating.");
+    setStatus(TRANSLATIONS[currentLang]["studio-ready-msg"]);
   } catch (error) {
-    voiceSelect.innerHTML = `<option>Voice loading failed</option>`;
-    setStatus("Unable to load voices. Check connection and refresh.");
+    voiceSelect.innerHTML = `<option>${currentLang === 'en' ? 'Voice loading failed' : 'အသံတင်ခြင်း မအောင်မြင်ပါ'}</option>`;
+    setStatus(TRANSLATIONS[currentLang]["unable-load-voices"]);
     if (voiceScroller) {
       voiceScroller.innerHTML = `
         <div class="spotlight-card placeholder-card">
           <div class="spotlight-emoji">⚠️</div>
-          <div class="spotlight-name">Offline</div>
-          <div class="spotlight-lang">No connection</div>
+          <div class="spotlight-name">${TRANSLATIONS[currentLang]["offline-card"]}</div>
+          <div class="spotlight-lang">${TRANSLATIONS[currentLang]["no-connection"]}</div>
         </div>
       `;
     }
@@ -213,7 +213,7 @@ if (sampleButton) {
       textInput.value = sampleText;
       updateCount();
     }
-    setStatus("Sample loaded — hit Generate when ready.");
+    setStatus(TRANSLATIONS[currentLang]["sample-loaded"]);
   });
 }
 
@@ -226,14 +226,14 @@ if (form) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    setStatus("Generating voice sample…", "loading");
+    setStatus(TRANSLATIONS[currentLang]["generating-voice"], "loading");
     if (generateButton) {
       generateButton.disabled = true;
       const btnSpan = generateButton.querySelector("span:last-child");
-      if (btnSpan) btnSpan.textContent = "Generating…";
+      if (btnSpan) btnSpan.textContent = TRANSLATIONS[currentLang]["generating"];
     }
     setDownloadState(false);
-    if (miniTitle) miniTitle.textContent = "Generating…";
+    if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["generating-player"];
 
     if (currentAudioUrl) {
       URL.revokeObjectURL(currentAudioUrl);
@@ -256,7 +256,7 @@ if (form) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "TTS generation failed.");
+        throw new Error(errorData.detail || TRANSLATIONS[currentLang]["generation-failed"]);
       }
 
       const audioBlob = await response.blob();
@@ -264,17 +264,17 @@ if (form) {
       if (audioPlayer) audioPlayer.src = currentAudioUrl;
       if (downloadLink) downloadLink.href = currentAudioUrl;
       setDownloadState(true);
-      setStatus("Audio ready — play or download.", "ready");
-      if (miniTitle) miniTitle.textContent = "Audio Ready";
+      setStatus(TRANSLATIONS[currentLang]["audio-ready-desc"], "ready");
+      if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["audio-ready"];
       if (miniSub) miniSub.textContent = voiceSelect.selectedOptions[0]?.textContent || "Voice";
     } catch (error) {
-      setStatus(error.message || "Something went wrong.");
-      if (miniTitle) miniTitle.textContent = "Error";
+      setStatus(error.message || TRANSLATIONS[currentLang]["something-wrong"]);
+      if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["error"];
     } finally {
       if (generateButton) {
         generateButton.disabled = false;
         const btnSpan = generateButton.querySelector("span:last-child");
-        if (btnSpan) btnSpan.textContent = "Generate Voice";
+        if (btnSpan) btnSpan.textContent = TRANSLATIONS[currentLang]["generate-btn"];
       }
     }
   });
@@ -284,29 +284,163 @@ if (form) {
 if (miniBars && audioPlayer) {
   audioPlayer.addEventListener("play", () => {
     miniBars.classList.add("playing");
-    if (miniTitle) miniTitle.textContent = "Now Playing";
+    if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["now-playing"];
   });
-    audioPlayer.addEventListener("pause", () => {
+  audioPlayer.addEventListener("pause", () => {
     miniBars.classList.remove("playing");
-    if (miniTitle) miniTitle.textContent = "Paused";
+    if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["paused"];
   });
   audioPlayer.addEventListener("ended", () => {
     miniBars.classList.remove("playing");
-    if (miniTitle) miniTitle.textContent = "Audio Ready";
+    if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["audio-ready"];
   });
 }
 
-// ===== Telegram Live Chat Interactivity (WebSockets & Official Google Auth) =====
-const chatMessages = document.getElementById("chatMessages");
-const chatMessageInput = document.getElementById("chatMessageInput");
-const chatSendButton = document.getElementById("chatSendButton");
-const onlineCountEl = document.getElementById("onlineCount");
-const statusDot = document.querySelector(".status-dot");
+// ===== Translation Map & Language Switcher Logic =====
+const TRANSLATIONS = {
+  en: {
+    "nav-title": "🎙️ Voice Studio",
+    "sample-btn": "Try Example",
+    "app-title": "Voice Generator",
+    "app-subtitle": "Create natural-sounding voiceovers instantly using advanced text-to-speech engine.",
+    "script-title": "SCRIPT",
+    "script-placeholder": "Type or paste your script here...",
+    "voice-selector-label": "VOICE SELECTOR",
+    "tuning-control-label": "TUNING CONTROL",
+    "speed-label": "🐢 Speed",
+    "pitch-label": "🎵 Pitch",
+    "generate-btn": "Generate Voice",
+    "login-btn": "👤 Sign In",
+    "logout-btn": "Sign Out",
+    "lock-text": "Sign in to send messages",
+    "lock-signin-btn": "Sign In / Sign Up",
+    "modal-title": "Community Account",
+    "tab-signin": "Sign In",
+    "tab-signup": "Sign Up",
+    "signin-desc": "Enter your registered email to join the chat.",
+    "label-email": "Email Address",
+    "btn-signin": "Sign In",
+    "signup-desc": "Create an account to start sharing messages.",
+    "label-username": "Username / Nickname",
+    "label-avatar": "Choose Avatar Profile",
+    "label-custom-avatar": "Or Custom Avatar URL",
+    "btn-signup": "Create Account",
+    "studio-ready-msg": "Studio ready — pick a voice and start creating.",
+    "unable-load-voices": "Unable to load voices. Check connection and refresh.",
+    "sample-loaded": "Sample loaded — hit Generate when ready.",
+    "generation-failed": "TTS generation failed.",
+    "something-wrong": "Something went wrong.",
+    "error": "Error",
+    "chat-title": "BurmeseRecap Community 🇲🇲",
+    "connecting": "Connecting to community server...",
+    "offline": "Offline. Reconnecting...",
+    "generating": "Generating...",
+    "generating-voice": "Generating voice sample…",
+    "generating-player": "Generating…",
+    "audio-ready": "Audio Ready",
+    "audio-ready-desc": "Audio ready — play or download.",
+    "now-playing": "Now Playing",
+    "paused": "Paused",
+    "unsend": "Unsend",
+    "copy-text": "Copy Text",
+    "sign-in-prompt": "Sign in to send messages...",
+    "write-message": "Write a message...",
+    "sign-out-confirm": "Do you want to sign out from {username}?",
+    "more-voices": "More Voices",
+    "hidden-voices": "hidden",
+    "offline-card": "Offline",
+    "no-connection": "No connection"
+  },
+  my: {
+    "nav-title": "🎙️ အသံ စတူဒီယို",
+    "sample-btn": "နမူနာ စမ်းကြည့်ရန်",
+    "app-title": "အသံ ဖန်တီးစနစ်",
+    "app-subtitle": "အဆင့်မြင့် စာဖတ်စနစ်ကို အသုံးပြုပြီး သဘာဝကျသော နောက်ခံစကားပြောသံများကို ချက်ချင်းဖန်တီးပါ။",
+    "script-title": "ဇာတ်ညွှန်း",
+    "script-placeholder": "သင်၏ဇာတ်ညွှန်းကို ဤနေရာတွင် ရိုက်ထည့်ပါ သို့မဟုတ် ကူးယူထည့်ပါ...",
+    "voice-selector-label": "အသံ ရွေးချယ်ရန်",
+    "tuning-control-label": "အသံ ချိန်ညှိမှု",
+    "speed-label": "🐢 မြန်နှုန်း",
+    "pitch-label": "🎵 အသံ အနိမ့်အမြင့်",
+    "generate-btn": "အသံ ထုတ်လုပ်ရန်",
+    "login-btn": "👤 ဝင်ရောက်ရန်",
+    "logout-btn": "ထွက်ရန်",
+    "lock-text": "မက်ဆေ့ခ်ျပို့ရန် အကောင့်ဝင်ပါ",
+    "lock-signin-btn": "အကောင့်ဝင်ရန် / အကောင့်ဖွင့်ရန်",
+    "modal-title": "အဖွဲ့အစည်း အကောင့်",
+    "tab-signin": "အကောင့်ဝင်ရန်",
+    "tab-signup": "အကောင့်ဖွင့်ရန်",
+    "signin-desc": "စကားပြောခန်းသို့ ဝင်ရောက်ရန် သင်မှတ်ပုံတင်ထားသော အီးမေးလ်ကို ထည့်ပါ။",
+    "label-email": "အီးမေးလ် လိပ်စာ",
+    "btn-signin": "အကောင့်ဝင်ရန်",
+    "signup-desc": "မက်ဆေ့ခ်ျများ စတင်ဝေမျှရန် အကောင့်တစ်ခု ပြုလုပ်ပါ။",
+    "label-username": "အသုံးပြုသူအမည် / အမည်ပြောင်",
+    "label-avatar": "ပရိုဖိုင်ပုံ ရွေးချယ်ရန်",
+    "label-custom-avatar": "သို့မဟုတ် စိတ်ကြိုက်ပရိုဖိုင်လင့်ခ်",
+    "btn-signup": "အကောင့်ဖွင့်ရန်",
+    "studio-ready-msg": "စတူဒီယို အသင့်ဖြစ်ပါပြီ — အသံတစ်ခုရွေးချယ်ပြီး စတင်ထုတ်လုပ်ပါ။",
+    "unable-load-voices": "အသံများကို တင်၍မရပါ။ အင်တာနက်ချိတ်ဆက်မှုကို စစ်ဆေးပြီး ပြန်ဖွင့်ပါ။",
+    "sample-loaded": "နမူနာ တင်ပြီးပါပြီ — အသင့်ဖြစ်ပါက 'ထုတ်လုပ်ရန်' ကို နှိပ်ပါ။",
+    "generation-failed": "အသံ ထုတ်လုပ်မှု မအောင်မြင်ပါ။",
+    "something-wrong": "တစ်စုံတစ်ခု မှားယွင်းနေပါသည်။",
+    "error": "အမှား",
+    "chat-title": "BurmeseRecap အဖွဲ့အစည်း 🇲🇲",
+    "connecting": "အဖွဲ့အစည်း ဆာဗာသို့ ချိတ်ဆက်နေသည်...",
+    "offline": "ချိတ်ဆက်မှု ပြတ်တောက်နေသည်။ ပြန်လည်ချိတ်ဆက်နေသည်...",
+    "generating": "ထုတ်လုပ်နေသည်...",
+    "generating-voice": "အသံနမူနာ ထုတ်လုပ်နေသည်…",
+    "generating-player": "ထုတ်လုပ်နေသည်…",
+    "audio-ready": "အသံ အဆင်သင့်ဖြစ်ပါပြီ",
+    "audio-ready-desc": "အသံ အဆင်သင့်ဖြစ်ပါပြီ — ဖွင့်ပါ သို့မဟုတ် ဒေါင်းလုဒ်လုပ်ပါ။",
+    "now-playing": "ဖွင့်နေသည်",
+    "paused": "ရပ်တန့်ထားသည်",
+    "unsend": "မက်ဆေ့ခ်ျဖျက်ရန်",
+    "copy-text": "စာသားကူးရန်",
+    "sign-in-prompt": "မက်ဆေ့ခ်ျပို့ရန် အကောင့်ဝင်ပါ...",
+    "write-message": "မက်ဆေ့ခ်ျရေးရန်...",
+    "sign-out-confirm": "{username} အကောင့်မှ ထွက်လိုပါသလား?",
+    "more-voices": "အခြား အသံများ",
+    "hidden-voices": "ခု ဝှက်ထားသည်",
+    "offline-card": "လိုင်းမရှိပါ",
+    "no-connection": "ချိတ်ဆက်မှုမရှိပါ"
+  }
+};
 
-const loginHeaderBtn = document.getElementById("loginHeaderBtn");
-const chatInputLockOverlay = document.getElementById("chatInputLockOverlay");
-const chatInputArea = document.getElementById("chatInputArea");
-const lockSignInBtn = document.getElementById("lockSignInBtn");
+let currentLang = safeStorage.getItem("tg_lang") || "en";
+
+function updateLanguage(lang) {
+  currentLang = lang;
+  safeStorage.setItem("tg_lang", lang);
+
+  // Update DOM elements with data-translate
+  document.querySelectorAll("[data-translate]").forEach(el => {
+    const key = el.getAttribute("data-translate");
+    const translation = TRANSLATIONS[lang][key];
+    if (translation) {
+      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+        el.placeholder = translation;
+      } else {
+        el.textContent = translation;
+      }
+    }
+  });
+
+  // Toggle active segment in the header lang selector
+  const enBtn = document.getElementById("langEnBtn");
+  const mmBtn = document.getElementById("langMmBtn");
+  if (enBtn && mmBtn) {
+    if (lang === "en") {
+      enBtn.classList.add("active");
+      mmBtn.classList.remove("active");
+    } else {
+      enBtn.classList.remove("active");
+      mmBtn.classList.add("active");
+    }
+  }
+
+  // Update dynamic texts
+  initUserSession();
+}
 
 // Session State
 let isUserSignedIn = safeStorage.getItem("tg_signed_in") === "true";
@@ -327,14 +461,14 @@ function initUserSession() {
     if (chatInputArea) chatInputArea.style.display = "flex";
     if (chatMessageInput) {
       chatMessageInput.removeAttribute("disabled");
-      chatMessageInput.placeholder = "Write a message...";
+      chatMessageInput.placeholder = TRANSLATIONS[currentLang]["write-message"];
     }
     if (chatSendButton) chatSendButton.removeAttribute("disabled");
     
     // Update Header Button to Sign Out
     if (loginHeaderBtn) {
-      loginHeaderBtn.innerHTML = `<img src="${myAvatarUrl}" class="account-pic" style="width:16px;height:16px;border:none;margin-right:4px;border-radius:50%;object-fit:cover;" /> Sign Out`;
-      loginHeaderBtn.title = `Signed in as ${myUsername}. Click to Sign Out.`;
+      loginHeaderBtn.innerHTML = `<img src="${myAvatarUrl}" class="account-pic" style="width:16px;height:16px;border:none;margin-right:4px;border-radius:50%;object-fit:cover;" /> ${TRANSLATIONS[currentLang]["logout-btn"]}`;
+      loginHeaderBtn.title = currentLang === "en" ? `Signed in as ${myUsername}. Click to Sign Out.` : `${myUsername} အဖြစ် အကောင့်ဝင်ထားသည်။ ထွက်ရန် နှိပ်ပါ။`;
     }
   } else {
     myUsername = "Guest";
@@ -346,14 +480,14 @@ function initUserSession() {
     if (chatInputArea) chatInputArea.style.display = "none";
     if (chatMessageInput) {
       chatMessageInput.setAttribute("disabled", "true");
-      chatMessageInput.placeholder = "Sign in to send messages...";
+      chatMessageInput.placeholder = TRANSLATIONS[currentLang]["sign-in-prompt"];
     }
     if (chatSendButton) chatSendButton.setAttribute("disabled", "true");
     
     // Update Header Button to Sign In
     if (loginHeaderBtn) {
-      loginHeaderBtn.innerHTML = `👤 Sign In`;
-      loginHeaderBtn.title = "Sign In / Sign Up";
+      loginHeaderBtn.innerHTML = TRANSLATIONS[currentLang]["login-btn"];
+      loginHeaderBtn.title = TRANSLATIONS[currentLang]["lock-signin-btn"];
     }
   }
 }
@@ -566,7 +700,7 @@ function showContextMenu(e, messageId, isSelf) {
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
       </svg>
-      Unsend
+      ${TRANSLATIONS[currentLang]["unsend"]}
     `;
     deleteBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
@@ -586,7 +720,7 @@ function showContextMenu(e, messageId, isSelf) {
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
       </svg>
-      Copy Text
+      ${TRANSLATIONS[currentLang]["copy-text"]}
     `;
     copyBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
@@ -724,7 +858,7 @@ function connectWebSocket() {
     statusDot.style.boxShadow = "0 0 4px #ff9500";
   }
   if (onlineCountEl) {
-    onlineCountEl.textContent = "Connecting to community server...";
+    onlineCountEl.textContent = TRANSLATIONS[currentLang]["connecting"];
   }
 
   socket = new WebSocket(wsUrl);
@@ -743,7 +877,11 @@ function connectWebSocket() {
       const message = JSON.parse(event.data);
 
       if (onlineCountEl && message.onlineCount !== undefined && message.totalUsers !== undefined) {
-        onlineCountEl.textContent = `${message.totalUsers.toLocaleString()} members, ${message.onlineCount.toLocaleString()} online`;
+        if (currentLang === "en") {
+          onlineCountEl.textContent = `${message.totalUsers.toLocaleString()} members, ${message.onlineCount.toLocaleString()} online`;
+        } else {
+          onlineCountEl.textContent = `အဖွဲ့ဝင် ${message.totalUsers.toLocaleString()} ဦး၊ ${message.onlineCount.toLocaleString()} ဦး အွန်လိုင်းရှိသည်`;
+        }
       }
 
       if (message.type === 'system') {
@@ -780,7 +918,7 @@ function connectWebSocket() {
       statusDot.style.boxShadow = "0 0 4px #ff3b30";
     }
     if (onlineCountEl) {
-      onlineCountEl.textContent = "Offline. Reconnecting...";
+      onlineCountEl.textContent = TRANSLATIONS[currentLang]["offline"];
     }
 
     reconnectTimer = setTimeout(() => {
@@ -994,7 +1132,8 @@ if (signUpForm) {
 }
 
 function handleSignOut() {
-  if (confirm(`Do you want to sign out from ${myUsername}?`)) {
+  const confirmMsg = TRANSLATIONS[currentLang]["sign-out-confirm"].replace("{username}", myUsername);
+  if (confirm(confirmMsg)) {
     safeStorage.removeItem("tg_signed_in");
     safeStorage.removeItem("tg_username");
     safeStorage.removeItem("tg_avatar_url");
@@ -1084,12 +1223,20 @@ if (chatMessages) {
   });
 }
 
+// ===== Translation switcher button listeners =====
+const langEnBtn = document.getElementById("langEnBtn");
+const langMmBtn = document.getElementById("langMmBtn");
+if (langEnBtn && langMmBtn) {
+  langEnBtn.addEventListener("click", () => updateLanguage("en"));
+  langMmBtn.addEventListener("click", () => updateLanguage("my"));
+}
+
 // ===== Init =====
 updateCount();
 updateSliders();
 setDownloadState(false);
 loadVoices();
-initUserSession();
+updateLanguage(currentLang);
 connectWebSocket();
 renderPresetAvatars();
 

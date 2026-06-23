@@ -44,6 +44,12 @@ const miniBars = document.getElementById("miniBars");
 const miniTitle = document.getElementById("miniTitle");
 const miniSub = document.getElementById("miniSub");
 
+const chatSendButton = document.getElementById("chatSendButton");
+const chatMessageInput = document.getElementById("chatMessageInput");
+const chatMessages = document.getElementById("chatMessages");
+const loginHeaderBtn = document.getElementById("loginHeaderBtn");
+const lockSignInBtn = document.getElementById("lockSignInBtn");
+
 let currentAudioUrl = null;
 
 const sampleText =

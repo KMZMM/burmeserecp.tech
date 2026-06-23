@@ -209,6 +209,44 @@ html, body {
   background-color: var(--ios-surface-hover);
 }
 
+.navbar-icon-svg {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+  stroke: var(--ios-text-secondary);
+  transition: transform 0.2s, stroke 0.2s, fill 0.2s;
+}
+
+.ios-btn:hover .navbar-icon-svg {
+  stroke: var(--ios-text);
+  transform: scale(1.1);
+}
+
+.premium-crown-svg {
+  stroke: #ff9500;
+  fill: rgba(255, 149, 0, 0.15);
+}
+
+.ios-btn:hover .premium-crown-svg {
+  stroke: #ffb300;
+  fill: rgba(255, 179, 0, 0.25);
+}
+
+/* Sun and Moon icon visibility based on data-theme */
+body:not([data-theme="light"]) .sun-icon {
+  display: block;
+}
+body:not([data-theme="light"]) .moon-icon {
+  display: none;
+}
+body[data-theme="light"] .sun-icon {
+  display: none;
+}
+body[data-theme="light"] .moon-icon {
+  display: block;
+}
+
 .ios-btn.primary {
   background-color: var(--ios-accent);
   color: #ffffff;

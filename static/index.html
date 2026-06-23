@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
   <!-- Local auth flow triggers -->
 </head>
 <body>
@@ -29,8 +29,18 @@
           <button class="control-segment active" id="langEnBtn">EN</button>
           <button class="control-segment" id="langMmBtn">မြန်မာ</button>
         </div>
-        <button class="ios-btn icon-only" id="premiumBtn" aria-label="Membership Plans">👑</button>
-        <button class="ios-btn icon-only" onclick="toggleTheme()" aria-label="Toggle light/dark theme">🌓</button>
+        <button class="ios-btn icon-only" id="premiumBtn" aria-label="Membership Plans" title="Membership Plans">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="navbar-icon-svg premium-crown-svg">
+            <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"></path>
+            <path d="M3 20h18"></path>
+          </svg>
+        </button>
+        <button class="ios-btn icon-only" onclick="toggleTheme()" aria-label="Toggle light/dark theme" title="Toggle Light/Dark Theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="navbar-icon-svg theme-toggle-svg">
+            <path class="sun-icon" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"></path>
+            <path class="moon-icon" d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+        </button>
       </div>
     </div>
   </header>
@@ -352,6 +362,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=6" defer></script>
+  <script src="app.js?v=7" defer></script>
 </body>
 </html>

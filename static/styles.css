@@ -1813,8 +1813,7 @@ html, body {
 }
 
 .ios-emoji.animated {
-  /* Prevent static scaling glitches, keep sharp vector representation */
-  transform: translateZ(0);
+  /* Removed transform: translateZ(0) to fix animation freezing in Safari and Firefox */
 }
 
 

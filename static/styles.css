@@ -1998,5 +1998,183 @@ body[data-theme="light"] .moon-icon {
   max-width: 780px;
 }
 
+/* ========== Dashboard Portal View ========== */
+.portal-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 120px);
+  padding: 100px 24px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+  box-sizing: border-box;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.portal-header {
+  margin-bottom: 48px;
+}
+
+.portal-logo {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffffff 30%, #a2a2a2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px;
+}
+
+[data-theme="light"] .portal-logo {
+  background: linear-gradient(135deg, #1d1d1f 30%, #86868b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.portal-subtitle {
+  font-size: 16px;
+  color: var(--ios-text-secondary);
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  width: 100%;
+}
+
+.portal-card {
+  background-color: var(--ios-surface);
+  border: 0.5px solid var(--ios-border);
+  border-radius: 24px;
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s;
+}
+
+.portal-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--ios-accent);
+  box-shadow: 0 12px 30px rgba(var(--ios-accent-rgb), 0.2);
+}
+
+.portal-card-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background-color: rgba(var(--ios-accent-rgb), 0.1);
+  color: var(--ios-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.portal-card-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.portal-card:hover .portal-card-icon {
+  background-color: var(--ios-accent);
+  color: #ffffff;
+}
+
+.portal-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.portal-card-desc {
+  font-size: 13.5px;
+  color: var(--ios-text-secondary);
+  line-height: 1.5;
+}
+
+/* Single column centering classes for appLayoutWrapper */
+.app-layout-wrapper.show-tts-only {
+  grid-template-columns: 1fr;
+  max-width: 800px;
+}
+
+.app-layout-wrapper.show-chat-only {
+  grid-template-columns: 1fr;
+  max-width: 600px;
+}
+
+/* Pricing custom coloration */
+.pricing-card:nth-child(1) {
+  border-color: rgba(142, 142, 147, 0.4);
+}
+.pricing-card:nth-child(1) .plan-badge {
+  background-color: rgba(142, 142, 147, 0.15);
+  color: #8e8e93;
+}
+.pricing-card:nth-child(1) .plan-price {
+  color: #8e8e93;
+}
+
+.pricing-card:nth-child(2) {
+  border-color: #ff9500;
+  background-color: rgba(255, 149, 0, 0.04);
+  box-shadow: 0 4px 20px rgba(255, 149, 0, 0.1);
+}
+.pricing-card:nth-child(2) .plan-badge {
+  background-color: #ff9500 !important;
+  color: #ffffff !important;
+}
+.pricing-card:nth-child(2) .plan-price {
+  color: #ff9500;
+}
+
+.pricing-card:nth-child(3) {
+  border-color: #5856d6;
+  background-color: rgba(88, 86, 214, 0.04);
+  box-shadow: 0 4px 20px rgba(88, 86, 214, 0.1);
+}
+.pricing-card:nth-child(3) .plan-badge {
+  background-color: #5856d6;
+  color: #ffffff;
+}
+.pricing-card:nth-child(3) .plan-price {
+  color: #5856d6;
+}
+
+/* Mobile Pricing Fit */
+@media (max-width: 680px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .ios-modal.plans-modal {
+    max-width: 92% !important;
+    max-height: 90vh;
+  }
+}
+
+.msg-avatar {
+  overflow: hidden;
+}
+
+.chat-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 
 

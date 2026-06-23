@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>burmeserecp.tech — Voice Studio</title>
+  <title>Burmese Recap</title>
   <meta name="description" content="Professional text-to-speech studio with iOS-inspired aesthetic." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,8 +23,14 @@
   <!-- iOS Frosted Header Nav Bar -->
   <header class="ios-navbar">
     <div class="nav-container">
-      <span class="nav-title" data-translate="nav-title">🎙️ Voice Studio</span>
+      <span class="nav-title" data-translate="nav-title">Burmese Recap</span>
       <div class="nav-actions">
+        <button class="ios-btn icon-only" id="homeBtn" aria-label="Back to Portal" title="Back to Portal" style="display: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="navbar-icon-svg">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </button>
         <div class="ios-segmented-control header-lang-selector">
           <button class="control-segment active" id="langEnBtn">EN</button>
           <button class="control-segment" id="langMmBtn">မြန်မာ</button>
@@ -45,8 +51,37 @@
     </div>
   </header>
 
+  <!-- Startup Dashboard Portal View -->
+  <div class="portal-container" id="portalContainer">
+    <div class="portal-header">
+      <h1 class="portal-logo" data-translate="portal-logo">Burmese Recap</h1>
+      <p class="portal-subtitle" data-translate="portal-subtitle">Select a service to get started</p>
+    </div>
+    <div class="portal-grid">
+      <div class="portal-card" id="goTtsBtn">
+        <div class="portal-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </div>
+        <h2 class="portal-card-title">Text To Speech</h2>
+        <p class="portal-card-desc">Generate realistic Burmese & multilingual audio from text.</p>
+      </div>
+      <div class="portal-card" id="goChatBtn">
+        <div class="portal-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <h2 class="portal-card-title">Burmese Recap Community</h2>
+        <p class="portal-card-desc">Join the room, chat, and react with other members.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Main View Grid Wrapper -->
-  <div class="app-layout-wrapper">
+  <div class="app-layout-wrapper" id="appLayoutWrapper" style="display: none;">
     <main class="app-container">
       
       <!-- Hero Header -->
@@ -103,7 +138,7 @@
             <!-- Speed Control -->
             <div class="slider-row">
               <div class="slider-info">
-                <span class="slider-label" data-translate="speed-label">🐢 Speed</span>
+                <span class="slider-label" data-translate="speed-label">Speed</span>
                 <span class="slider-value-badge" id="rateValue">0%</span>
               </div>
               <div class="slider-track-wrapper">
@@ -117,7 +152,7 @@
             <!-- Pitch Control -->
             <div class="slider-row">
               <div class="slider-info">
-                <span class="slider-label" data-translate="pitch-label">🎵 Pitch</span>
+                <span class="slider-label" data-translate="pitch-label">Pitch</span>
                 <span class="slider-value-badge" id="pitchValue">0Hz</span>
               </div>
               <div class="slider-track-wrapper">
@@ -201,7 +236,7 @@
   </div>
 
   <!-- iOS Control Center Now Playing Bar -->
-  <footer class="now-playing-bar" id="miniPlayer">
+  <footer class="now-playing-bar" id="miniPlayer" style="display: none;">
     <div class="now-playing-inner">
       
       <!-- Media Artwork and Info -->

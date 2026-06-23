@@ -268,11 +268,12 @@ async def login(payload: LoginRequest):
 
 
 def format_voice_label(voice: dict[str, Any]) -> str:
-    locale_name = voice.get("Locale", "").replace("-", " ")
-    gender = voice.get("Gender", "")
     short_name = voice.get("ShortName", "")
-    friendly_name = voice.get("FriendlyName", short_name)
-    return f"{friendly_name} • {locale_name} • {gender}".strip(" •")
+    parts = short_name.split("-")
+    last = parts[-1] if parts else ""
+    name = last.replace("MultilingualNeural", "").replace("Neural", "")
+    is_multi = "multilingual" in short_name.lower()
+    return f"{name} ({'Multilingual' if is_multi else 'Burmese'})"
 
 
 def sort_key(voice: dict[str, Any]) -> tuple[int, str]:
@@ -298,19 +299,12 @@ async def healthcheck() -> dict[str, str]:
 
 
 FALLBACK_VOICES = [
-    {"short_name": "my-MM-NilarNeural", "locale": "my-MM", "gender": "Female", "label": "Microsoft Nilar Online • Burmese • Female"},
-    {"short_name": "my-MM-ThihaNeural", "locale": "my-MM", "gender": "Male", "label": "Microsoft Thiha Online • Burmese • Male"},
-    {"short_name": "en-US-AvaMultilingualNeural", "locale": "en-US", "gender": "Female", "label": "Microsoft Ava Multilingual Online • English (US) • Female"},
-    {"short_name": "en-US-AndrewMultilingualNeural", "locale": "en-US", "gender": "Male", "label": "Microsoft Andrew Multilingual Online • English (US) • Male"},
-    {"short_name": "en-US-EmmaMultilingualNeural", "locale": "en-US", "gender": "Female", "label": "Microsoft Emma Multilingual Online • English (US) • Female"},
-    {"short_name": "en-GB-SoniaNeural", "locale": "en-GB", "gender": "Female", "label": "Microsoft Sonia Online • English (UK) • Female"},
-    {"short_name": "en-US-BrianNeural", "locale": "en-US", "gender": "Male", "label": "Microsoft Brian Online • English (US) • Male"},
-    {"short_name": "ja-JP-NanamiNeural", "locale": "ja-JP", "gender": "Female", "label": "Microsoft Nanami Online • Japanese • Female"},
-    {"short_name": "ja-JP-KeitaNeural", "locale": "ja-JP", "gender": "Male", "label": "Microsoft Keita Online • Japanese • Male"},
-    {"short_name": "ko-KR-SunHiNeural", "locale": "ko-KR", "gender": "Female", "label": "Microsoft SunHi Online • Korean • Female"},
-    {"short_name": "ko-KR-InJoonNeural", "locale": "ko-KR", "gender": "Male", "label": "Microsoft InJoon Online • Korean • Male"},
-    {"short_name": "zh-CN-XiaoxiaoNeural", "locale": "zh-CN", "gender": "Female", "label": "Microsoft Xiaoxiao Online • Chinese (Simplified) • Female"},
-    {"short_name": "zh-CN-YunxiNeural", "locale": "zh-CN", "gender": "Male", "label": "Microsoft Yunxi Online • Chinese (Simplified) • Male"}
+    {"short_name": "my-MM-NilarNeural", "locale": "my-MM", "gender": "Female", "label": "Nilar (Burmese)"},
+    {"short_name": "my-MM-ThihaNeural", "locale": "my-MM", "gender": "Male", "label": "Thiha (Burmese)"},
+    {"short_name": "en-US-AvaMultilingualNeural", "locale": "en-US", "gender": "Female", "label": "Ava (Multilingual)"},
+    {"short_name": "en-US-AndrewMultilingualNeural", "locale": "en-US", "gender": "Male", "label": "Andrew (Multilingual)"},
+    {"short_name": "en-US-EmmaMultilingualNeural", "locale": "en-US", "gender": "Female", "label": "Emma (Multilingual)"},
+    {"short_name": "en-US-BrianMultilingualNeural", "locale": "en-US", "gender": "Male", "label": "Brian (Multilingual)"},
 ]
 
 CACHED_VOICES: list[dict[str, Any]] = []
@@ -323,10 +317,13 @@ async def fetch_and_cache_voices():
         filtered = []
         for voice in sorted(voices, key=sort_key):
             locale = voice.get("Locale", "")
-            if locale.startswith(("en-", "my-", "ja-", "ko-", "zh-")):
+            short_name = voice.get("ShortName", "")
+            is_burmese = locale.startswith("my-")
+            is_multilingual = "multilingual" in short_name.lower()
+            if is_burmese or is_multilingual:
                 filtered.append(
                     {
-                        "short_name": voice["ShortName"],
+                        "short_name": short_name,
                         "locale": locale,
                         "gender": voice.get("Gender", ""),
                         "label": format_voice_label(voice),

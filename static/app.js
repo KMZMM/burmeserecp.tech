@@ -50,6 +50,16 @@ const chatMessages = document.getElementById("chatMessages");
 const loginHeaderBtn = document.getElementById("loginHeaderBtn");
 const lockSignInBtn = document.getElementById("lockSignInBtn");
 
+const miniPlayer = document.getElementById("miniPlayer");
+const portalContainer = document.getElementById("portalContainer");
+const appLayoutWrapper = document.getElementById("appLayoutWrapper");
+const goTtsBtn = document.getElementById("goTtsBtn");
+const goChatBtn = document.getElementById("goChatBtn");
+const homeBtn = document.getElementById("homeBtn");
+
+const appContainer = document.querySelector(".app-container");
+const chatCard = document.querySelector(".telegram-chat-card");
+
 let currentAudioUrl = null;
 
 const sampleText =
@@ -229,6 +239,7 @@ if (form) {
       if (btnSpan) btnSpan.textContent = TRANSLATIONS[currentLang]["generating"];
     }
     setDownloadState(false);
+    if (miniPlayer) miniPlayer.style.display = "none";
     if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["generating-player"];
 
     if (currentAudioUrl) {
@@ -260,6 +271,7 @@ if (form) {
       if (audioPlayer) audioPlayer.src = currentAudioUrl;
       if (downloadLink) downloadLink.href = currentAudioUrl;
       setDownloadState(true);
+      if (miniPlayer) miniPlayer.style.display = "block";
       setStatus(TRANSLATIONS[currentLang]["audio-ready-desc"], "ready");
       if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["audio-ready"];
       if (miniSub) miniSub.textContent = voiceSelect.selectedOptions[0]?.textContent || "Voice";
@@ -295,15 +307,15 @@ if (miniBars && audioPlayer) {
 // ===== Translation Map & Language Switcher Logic =====
 const TRANSLATIONS = {
   en: {
-    "nav-title": "🎙️ Voice Studio",
-    "app-title": "Voice Generator",
+    "nav-title": "Burmese Recap",
+    "app-title": "Burmese Recap",
     "app-subtitle": "Create natural-sounding voiceovers instantly using advanced text-to-speech engine.",
     "script-title": "SCRIPT",
     "script-placeholder": "Type or paste your script here...",
     "voice-selector-label": "VOICE SELECTOR",
     "tuning-control-label": "TUNING CONTROL",
-    "speed-label": "🐢 Speed",
-    "pitch-label": "🎵 Pitch",
+    "speed-label": "Speed",
+    "pitch-label": "Pitch",
     "generate-btn": "Generate Voice",
     "login-btn": "👤 Sign In",
     "logout-btn": "Sign Out",
@@ -365,15 +377,15 @@ const TRANSLATIONS = {
     "plan-feature-9": "24/7 Dedicated Support"
   },
   my: {
-    "nav-title": "🎙️ အသံ စတူဒီယို",
+    "nav-title": "Burmese Recap",
     "app-title": "အသံ ဖန်တီးစနစ်",
     "app-subtitle": "အဆင့်မြင့် စာဖတ်စနစ်ကို အသုံးပြုပြီး သဘာဝကျသော နောက်ခံစကားပြောသံများကို ချက်ချင်းဖန်တီးပါ။",
     "script-title": "ဇာတ်ညွှန်း",
     "script-placeholder": "သင်၏ဇာတ်ညွှန်းကို ဤနေရာတွင် ရိုက်ထည့်ပါ သို့မဟုတ် ကူးယူထည့်ပါ...",
     "voice-selector-label": "အသံ ရွေးချယ်ရန်",
     "tuning-control-label": "အသံ ချိန်ညှိမှု",
-    "speed-label": "🐢 မြန်နှုန်း",
-    "pitch-label": "🎵 အသံ အနိမ့်အမြင့်",
+    "speed-label": "မြန်နှုန်း",
+    "pitch-label": "အသံ အနိမ့်အမြင့်",
     "generate-btn": "အသံ ထုတ်လုပ်ရန်",
     "login-btn": "👤 ဝင်ရောက်ရန်",
     "logout-btn": "ထွက်ရန်",
@@ -450,7 +462,7 @@ function updateLanguage(lang) {
       if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
         el.placeholder = translation;
       } else {
-        el.innerHTML = parseMessageText(translation);
+        el.textContent = translation;
       }
     }
   });
@@ -497,7 +509,7 @@ function initUserSession() {
     
     // Update Header Button to Sign Out
     if (loginHeaderBtn) {
-      loginHeaderBtn.innerHTML = parseMessageText(`<img src="${myAvatarUrl}" class="account-pic" style="width:16px;height:16px;border:none;margin-right:4px;border-radius:50%;object-fit:cover;" /> ${TRANSLATIONS[currentLang]["logout-btn"]}`);
+      loginHeaderBtn.innerHTML = `<img src="${myAvatarUrl}" class="account-pic" style="width:16px;height:16px;border:none;margin-right:4px;border-radius:50%;object-fit:cover;" /> ${TRANSLATIONS[currentLang]["logout-btn"]}`;
       loginHeaderBtn.title = currentLang === "en" ? `Signed in as ${myUsername}. Click to Sign Out.` : `${myUsername} အဖြစ် အကောင့်ဝင်ထားသည်။ ထွက်ရန် နှိပ်ပါ။`;
     }
   } else {
@@ -1308,6 +1320,44 @@ if (langEnBtn && langMmBtn) {
   langEnBtn.addEventListener("click", () => updateLanguage("en"));
   langMmBtn.addEventListener("click", () => updateLanguage("my"));
 }
+
+// ===== Dashboard Portal Logic =====
+function showTtsPage() {
+  if (portalContainer) portalContainer.style.display = "none";
+  if (appLayoutWrapper) {
+    appLayoutWrapper.style.display = ""; 
+    appLayoutWrapper.classList.add("show-tts-only");
+    appLayoutWrapper.classList.remove("show-chat-only");
+  }
+  if (appContainer) appContainer.style.display = "block";
+  if (chatCard) chatCard.style.display = "none";
+  if (homeBtn) homeBtn.style.display = "inline-flex";
+}
+
+function showChatPage() {
+  if (portalContainer) portalContainer.style.display = "none";
+  if (appLayoutWrapper) {
+    appLayoutWrapper.style.display = ""; 
+    appLayoutWrapper.classList.remove("show-tts-only");
+    appLayoutWrapper.classList.add("show-chat-only");
+  }
+  if (appContainer) appContainer.style.display = "none";
+  if (chatCard) chatCard.style.display = "block";
+  if (homeBtn) homeBtn.style.display = "inline-flex";
+}
+
+function showPortalPage() {
+  if (portalContainer) portalContainer.style.display = "flex";
+  if (appLayoutWrapper) {
+    appLayoutWrapper.style.display = "none";
+    appLayoutWrapper.classList.remove("show-tts-only", "show-chat-only");
+  }
+  if (homeBtn) homeBtn.style.display = "none";
+}
+
+if (goTtsBtn) goTtsBtn.addEventListener("click", showTtsPage);
+if (goChatBtn) goChatBtn.addEventListener("click", showChatPage);
+if (homeBtn) homeBtn.addEventListener("click", showPortalPage);
 
 // ===== Init =====
 updateCount();

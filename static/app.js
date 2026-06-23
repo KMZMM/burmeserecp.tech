@@ -56,6 +56,7 @@ const appLayoutWrapper = document.getElementById("appLayoutWrapper");
 const goTtsBtn = document.getElementById("goTtsBtn");
 const goChatBtn = document.getElementById("goChatBtn");
 const homeBtn = document.getElementById("homeBtn");
+const loadingModal = document.getElementById("loadingModal");
 
 const appContainer = document.querySelector(".app-container");
 const chatCard = document.querySelector(".telegram-chat-card");
@@ -81,6 +82,43 @@ function setStatus(message, tone = "idle") {
     statusPill.style.background = tone === "ready" ? "rgba(48, 209, 88, 0.15)" : "rgba(var(--ios-accent-rgb), 0.15)";
     statusPill.style.color = tone === "ready" ? "var(--ios-green)" : "var(--ios-accent)";
   }
+}
+
+function showToast(message, duration = 3000) {
+  let toast = document.getElementById("iosToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "iosToast";
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(255, 59, 48, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(255, 59, 48, 0.3);
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.offsetHeight; // trigger reflow
+  toast.style.opacity = "1";
+  toast.style.transform = "translateX(-50%) translateY(0)";
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(20px)";
+  }, duration);
 }
 
 function updateCount() {
@@ -135,8 +173,7 @@ function renderVoiceCards() {
     const more = document.createElement("div");
     more.className = "spotlight-card";
     more.innerHTML = `
-      <div class="spotlight-emoji">➕</div>
-      <div class="spotlight-name">${TRANSLATIONS[currentLang]["more-voices"]}</div>
+      <div class="spotlight-name" style="font-weight: 600;">${TRANSLATIONS[currentLang]["more-voices"]}</div>
       <div class="spotlight-lang">${options.length - 15} ${TRANSLATIONS[currentLang]["hidden-voices"]}</div>
     `;
     more.addEventListener("click", () => {
@@ -155,17 +192,13 @@ function createVoiceCard(option, index) {
   if (option.selected) card.classList.add("active");
 
   const label = option.textContent;
-  const shortName = label.split("•")[0].trim().split(" ").pop() || "Voice";
+  // Ensure we get the full name before the " (Burmese)" or " (Multilingual)" details
+  const shortName = label.includes(" (") ? label.split(" (")[0] : label;
   const lang = option.dataset.locale || "en-US";
   
-  // Choose flag or generic speech icon
-  const langPrefix = lang.split("-").slice(0, 2).join("-");
-  const flag = localeFlags[langPrefix] || "🗣️";
-
   card.innerHTML = `
-    <div class="spotlight-emoji">${flag}</div>
-    <div class="spotlight-name" title="${label}">${shortName}</div>
-    <div class="spotlight-lang">${lang}</div>
+    <div class="spotlight-name" title="${label}" style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">${shortName}</div>
+    <div class="spotlight-lang" style="font-size: 11px; opacity: 0.6;">${lang}</div>
   `;
 
   card.addEventListener("click", () => {
@@ -232,6 +265,13 @@ if (form) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    const scriptVal = textInput ? textInput.value.trim() : "";
+    if (!scriptVal) {
+      showToast(currentLang === 'en' ? "Please type or paste your script first!" : "ကျေးဇူးပြု၍ ဇာတ်ညွှန်းစာသား အရင်ရေးပါ!");
+      if (textInput) textInput.focus();
+      return;
+    }
+
     setStatus(TRANSLATIONS[currentLang]["generating-voice"], "loading");
     if (generateButton) {
       generateButton.disabled = true;
@@ -239,8 +279,15 @@ if (form) {
       if (btnSpan) btnSpan.textContent = TRANSLATIONS[currentLang]["generating"];
     }
     setDownloadState(false);
-    if (miniPlayer) miniPlayer.style.display = "none";
+    
+    // Show miniPlayer immediately and set to generating state
+    if (miniPlayer) {
+      miniPlayer.style.display = "block";
+      miniPlayer.classList.add("generating");
+    }
     if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["generating-player"];
+    const selectedVoiceText = voiceSelect && voiceSelect.selectedOptions && voiceSelect.selectedOptions[0] ? voiceSelect.selectedOptions[0].textContent : "Voice";
+    if (miniSub) miniSub.textContent = selectedVoiceText;
 
     if (currentAudioUrl) {
       URL.revokeObjectURL(currentAudioUrl);
@@ -274,16 +321,38 @@ if (form) {
       if (miniPlayer) miniPlayer.style.display = "block";
       setStatus(TRANSLATIONS[currentLang]["audio-ready-desc"], "ready");
       if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["audio-ready"];
-      if (miniSub) miniSub.textContent = voiceSelect.selectedOptions[0]?.textContent || "Voice";
+      if (miniSub) miniSub.textContent = selectedVoiceText;
     } catch (error) {
       setStatus(error.message || TRANSLATIONS[currentLang]["something-wrong"]);
       if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["error"];
+      showToast(error.message || TRANSLATIONS[currentLang]["something-wrong"]);
+      if (!currentAudioUrl && miniPlayer) {
+        miniPlayer.style.display = "none";
+      }
     } finally {
+      if (miniPlayer) {
+        miniPlayer.classList.remove("generating");
+      }
       if (generateButton) {
         generateButton.disabled = false;
         const btnSpan = generateButton.querySelector("span:last-child");
         if (btnSpan) btnSpan.textContent = TRANSLATIONS[currentLang]["generate-btn"];
       }
+    }
+  });
+}
+
+// ===== Mini Player Dismiss Button =====
+const miniDismissBtn = document.getElementById("miniDismissBtn");
+if (miniDismissBtn) {
+  miniDismissBtn.addEventListener("click", () => {
+    if (audioPlayer) {
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+    }
+    if (miniPlayer) {
+      miniPlayer.style.display = "none";
+      miniPlayer.classList.remove("generating");
     }
   });
 }
@@ -308,7 +377,7 @@ if (miniBars && audioPlayer) {
 const TRANSLATIONS = {
   en: {
     "nav-title": "Burmese Recap",
-    "app-title": "Burmese Recap",
+    "app-title": "Generate Text To Speech",
     "app-subtitle": "Create natural-sounding voiceovers instantly using advanced text-to-speech engine.",
     "script-title": "SCRIPT",
     "script-placeholder": "Type or paste your script here...",
@@ -559,25 +628,56 @@ function getInitials(name) {
 // ===== Apple & Telegram Emojis Mapping & Rendering System =====
 
 const animatedEmojiMap = {
-  "👍": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Thumbs%20Up.webp",
-  "❤️": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Symbols/Red%20Heart.webp",
-  "🔥": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Fire.webp",
-  "😂": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Face%20With%20Tears%20Of%20Joy.webp",
-  "👏": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Clapping%20Hands.webp",
-  "🎉": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Activity/Party%20Popper.webp",
+  // Smileys
   "😊": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face.webp",
+  "😂": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Face%20With%20Tears%20Of%20Joy.webp",
+  "🤣": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Rolling%20On%20The%20Floor%20Laughing.webp",
   "😍": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Hearts.webp",
+  "🥰": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Hearts.webp",
+  "😘": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Face%20Blowing%20A%20Kiss.webp",
   "😭": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Loudly%20Crying%20Face.webp",
   "🤔": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Thinking%20Face.webp",
   "😮": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Face%20With%20Open%20Mouth.webp",
   "🤩": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Star%20Struck.webp",
   "😜": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Winking%20Face%20With%20Tongue.webp",
   "😎": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Sunglasses.webp",
+  "🥺": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Pleading%20Face.webp",
+  "😡": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Pouting%20Face.webp",
+  "🤯": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Exploding%20Head.webp",
+  "🤗": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Open%20Hands.webp",
+  "🫡": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Saluting%20Face.webp",
+  "🤫": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Shushing%20Face.webp",
+  "😴": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Sleeping%20Face.webp",
   "💩": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Pile%20Of%20Poo.webp",
-  "🎙️": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Studio%20Microphone.webp",
+  "👻": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Ghost.webp",
+  "💀": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Skull.webp",
+  // Gestures & People
+  "👍": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Thumbs%20Up.webp",
+  "👎": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Thumbs%20Down.webp",
+  "👏": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Clapping%20Hands.webp",
+  "🙏": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Folded%20Hands.webp",
+  "👋": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Waving%20Hand.webp",
+  "✌️": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Victory%20Hand.webp",
+  "🤝": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Handshake.webp",
+  "💪": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Flexed%20Biceps.webp",
+  "👤": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Bust%20In%20Silhouette.webp",
+  // Symbols & Hearts
+  "❤️": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Symbols/Red%20Heart.webp",
+  "💔": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Symbols/Broken%20Heart.webp",
+  "💯": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Symbols/Hundred%20Points.webp",
+  "⭐": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Star.webp",
+  // Nature & Animals
+  "🔥": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Fire.webp",
   "🐢": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Turtle.webp",
+  "🦋": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Butterfly.webp",
+  "🌈": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Rainbow.webp",
+  // Activity & Objects
+  "🎉": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Activity/Party%20Popper.webp",
+  "🎙️": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Studio%20Microphone.webp",
   "🎵": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Musical%20Note.webp",
-  "👤": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Bust%20In%20Silhouette.webp"
+  "🚀": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Rocket.webp",
+  "💎": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Gem%20Stone.webp",
+  "🎯": "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Activity/Bullseye.webp"
 };
 
 function emojiToHex(emoji) {
@@ -585,11 +685,16 @@ function emojiToHex(emoji) {
 }
 
 function getEmojiHTML(emoji, size = 18) {
+  const retryAttr = `onerror="if(!this.dataset.retries){this.dataset.retries=0}this.dataset.retries++;if(this.dataset.retries<3){setTimeout(()=>{this.src=this.src+'&r='+this.dataset.retries},800*this.dataset.retries)}else{this.style.display='none';if(this.parentElement){this.parentElement.querySelector('.emoji-shimmer').style.display='none'}}"`;
+  const loadAttr = `onload="this.style.opacity='1';if(this.parentElement){this.parentElement.querySelector('.emoji-shimmer').style.display='none'}"`;
+  const shimmer = `<span class="emoji-shimmer" style="position:absolute;top:0;left:0;width:${size}px;height:${size}px;border-radius:50%;"></span>`;
+  const wrapper = `display:inline-flex;position:relative;width:${size}px;height:${size}px;vertical-align:middle;align-items:center;justify-content:center;flex-shrink:0;`;
+  const imgStyle = `width:${size}px;height:${size}px;vertical-align:middle;opacity:0;transition:opacity 0.15s;`;
   if (animatedEmojiMap[emoji]) {
-    return `<img src="${animatedEmojiMap[emoji]}" class="ios-emoji animated" style="width: ${size}px; height: ${size}px; vertical-align: middle;" alt="${emoji}" />`;
+    return `<span style="${wrapper}">${shimmer}<img src="${animatedEmojiMap[emoji]}" class="ios-emoji animated" style="${imgStyle}" alt="${emoji}" ${loadAttr} ${retryAttr} /></span>`;
   }
   const hex = emojiToHex(emoji);
-  return `<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${hex}.png" class="ios-emoji" style="width: ${size}px; height: ${size}px; vertical-align: middle;" alt="${emoji}" />`;
+  return `<span style="${wrapper}">${shimmer}<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${hex}.png" class="ios-emoji" style="${imgStyle}" alt="${emoji}" ${loadAttr} ${retryAttr} /></span>`;
 }
 
 function parseMessageText(text) {
@@ -1260,7 +1365,7 @@ if (pickerGrid) {
     const btn = document.createElement("button");
     btn.className = "picker-emoji-btn";
     btn.type = "button";
-    btn.innerHTML = `<img src="${url}" alt="${emoji}" />`;
+    btn.innerHTML = `<span style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><span class="emoji-shimmer" style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50%;"></span><img src="${url}" alt="${emoji}" style="width:28px;height:28px;opacity:0;transition:opacity 0.15s;object-fit:contain;" onload="this.style.opacity='1';this.parentElement.querySelector('.emoji-shimmer').style.display='none'" onerror="if(!this.dataset.retries){this.dataset.retries=0}this.dataset.retries++;if(this.dataset.retries<3){setTimeout(()=>{this.src=this.src+'&r='+this.dataset.retries},800*this.dataset.retries)}else{this.style.display='none';var s=this.parentElement.querySelector('.emoji-shimmer');if(s){s.textContent='${emoji}';s.classList.remove('emoji-shimmer');s.style.cssText='font-size:22px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;'}}" /></span>`;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       insertEmojiAtCursor(emoji);
@@ -1342,7 +1447,7 @@ function showChatPage() {
     appLayoutWrapper.classList.add("show-chat-only");
   }
   if (appContainer) appContainer.style.display = "none";
-  if (chatCard) chatCard.style.display = "block";
+  if (chatCard) chatCard.style.display = "flex";
   if (homeBtn) homeBtn.style.display = "inline-flex";
 }
 

@@ -1,48 +1,58 @@
 /* ========== iOS Professional Theme Colors ========== */
 :root {
-  --ios-bg: #000000;
-  --ios-surface: rgba(28, 28, 30, 0.65);
-  --ios-surface-hover: rgba(44, 44, 46, 0.8);
-  --ios-border: rgba(255, 255, 255, 0.1);
+  --ios-bg: #0b0c10;
+  --ios-surface: rgba(24, 24, 30, 0.58);
+  --ios-surface-hover: rgba(35, 35, 45, 0.75);
+  --ios-border: rgba(255, 255, 255, 0.12);
   --ios-text: #ffffff;
-  --ios-text-secondary: #8e8e93;
+  --ios-text-secondary: #a5a5aa;
   --ios-accent: #0a84ff;
   --ios-accent-rgb: 10, 132, 255;
   --ios-green: #30d158;
   --ios-divider: rgba(255, 255, 255, 0.08);
-  --ios-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --navbar-bg: rgba(0, 0, 0, 0.7);
+  --ios-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --font-stack: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --navbar-bg: rgba(10, 10, 15, 0.65);
+
+  /* Soft Aura Gradients for Dark mode */
+  --aura-1-grad: linear-gradient(135deg, rgba(90, 200, 250, 0.35), rgba(76, 217, 100, 0.25));
+  --aura-2-grad: linear-gradient(135deg, rgba(255, 55, 95, 0.3), rgba(191, 90, 242, 0.3));
+  --aura-3-grad: linear-gradient(135deg, rgba(255, 149, 0, 0.25), rgba(255, 45, 85, 0.25));
 
   /* Telegram Variables */
-  --tg-chat-bg: rgba(10, 10, 12, 0.35);
-  --tg-msg-received-bg: rgba(36, 36, 38, 0.8);
-  --tg-msg-sent-bg: rgba(10, 132, 255, 0.8);
+  --tg-chat-bg: rgba(10, 10, 12, 0.25);
+  --tg-msg-received-bg: rgba(25, 25, 30, 0.6);
+  --tg-msg-sent-bg: rgba(10, 132, 255, 0.55);
   --tg-text-color: #ffffff;
   --tg-text-secondary: rgba(255, 255, 255, 0.5);
   --tg-ticks-color: #30d158;
 }
 
 [data-theme="light"] {
-  --ios-bg: #f2f2f7;
-  --ios-surface: rgba(255, 255, 255, 0.75);
-  --ios-surface-hover: rgba(255, 255, 255, 0.9);
-  --ios-border: rgba(0, 0, 0, 0.08);
-  --ios-text: #1c1c1e;
-  --ios-text-secondary: #8e8e93;
+  --ios-bg: #f5f5f7;
+  --ios-surface: rgba(255, 255, 255, 0.55);
+  --ios-surface-hover: rgba(255, 255, 255, 0.75);
+  --ios-border: rgba(0, 0, 0, 0.1);
+  --ios-text: #1d1d1f;
+  --ios-text-secondary: #86868b;
   --ios-accent: #007aff;
   --ios-accent-rgb: 0, 122, 255;
   --ios-green: #34c759;
   --ios-divider: rgba(0, 0, 0, 0.06);
-  --ios-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
-  --navbar-bg: rgba(255, 255, 255, 0.8);
+  --ios-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+  --navbar-bg: rgba(255, 255, 255, 0.65);
+
+  /* Soft Aura Gradients for Light mode */
+  --aura-1-grad: linear-gradient(135deg, rgba(90, 200, 250, 0.2), rgba(76, 217, 100, 0.14));
+  --aura-2-grad: linear-gradient(135deg, rgba(255, 55, 95, 0.16), rgba(191, 90, 242, 0.16));
+  --aura-3-grad: linear-gradient(135deg, rgba(255, 149, 0, 0.15), rgba(255, 45, 85, 0.15));
 
   /* Telegram Variables */
-  --tg-chat-bg: rgba(230, 235, 240, 0.6);
-  --tg-msg-received-bg: rgba(255, 255, 255, 0.95);
-  --tg-msg-sent-bg: rgba(0, 122, 255, 0.85);
+  --tg-chat-bg: rgba(255, 255, 255, 0.15);
+  --tg-msg-received-bg: rgba(255, 255, 255, 0.65);
+  --tg-msg-sent-bg: rgba(0, 122, 255, 0.55);
   --tg-text-color: #1c1c1e;
-  --tg-text-secondary: rgba(0, 0, 0, 0.4);
+  --tg-text-secondary: rgba(0, 0, 0, 0.45);
   --tg-ticks-color: #34c759;
 }
 
@@ -57,77 +67,32 @@
 
 html, body {
   font-family: var(--font-stack);
-  background-color: var(--ios-bg);
   color: var(--ios-text);
   min-height: 100vh;
-  transition: background-color 0.4s, color 0.4s;
+  transition: color 0.4s;
   overflow-x: hidden;
 }
 
-/* ========== Dynamic Aura Background (Apple Style) ========== */
+body {
+  background: 
+    radial-gradient(circle at 15% 15%, rgba(90, 200, 250, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(191, 90, 242, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 50% 35%, rgba(255, 45, 85, 0.16) 0%, transparent 50%),
+    #0b0c10;
+  background-attachment: fixed;
+}
+
+body[data-theme="light"] {
+  background: 
+    radial-gradient(circle at 15% 15%, rgba(0, 122, 255, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(175, 82, 222, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 50% 35%, rgba(255, 45, 85, 0.08) 0%, transparent 50%),
+    #f5f5f7;
+  background-attachment: fixed;
+}
+
 .bg-aura {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.aura-sphere {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.15;
-  transition: opacity 0.5s;
-}
-
-[data-theme="light"] .aura-sphere {
-  opacity: 0.08;
-}
-
-.aura-1 {
-  top: -10%;
-  left: -10%;
-  width: 50vw;
-  height: 50vw;
-  background: radial-gradient(circle, var(--ios-accent) 0%, transparent 70%);
-  animation: floatAura1 25s infinite alternate ease-in-out;
-}
-
-.aura-2 {
-  bottom: -10%;
-  right: -10%;
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(circle, #bf5af2 0%, transparent 70%);
-  animation: floatAura2 30s infinite alternate ease-in-out;
-}
-
-.aura-3 {
-  top: 40%;
-  left: 50%;
-  width: 40vw;
-  height: 40vw;
-  background: radial-gradient(circle, #ff375f 0%, transparent 70%);
-  animation: floatAura3 20s infinite alternate ease-in-out;
-}
-
-@keyframes floatAura1 {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(10%, 15%) scale(1.2); }
-}
-
-@keyframes floatAura2 {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-15%, -10%) scale(1.1); }
-}
-
-@keyframes floatAura3 {
-  0% { transform: translate(-20%, 0) scale(1.1); }
-  100% { transform: translate(20%, 10%) scale(0.9); }
+  display: none;
 }
 
 /* ========== iOS Frosted Header ========== */
@@ -158,8 +123,30 @@ html, body {
 
 .nav-title {
   font-size: 19px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.5px;
+  background: linear-gradient(120deg, #007aff, #5856d6, #ff2d55, #ff9500, #007aff);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shineTitle 5s linear infinite;
+  display: inline-block;
+  padding-right: 8px;
+}
+
+body:not([data-theme="light"]) .nav-title {
+  background: linear-gradient(120deg, #5ac8fa, #bf5af2, #ff375f, #ff9500, #5ac8fa);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes shineTitle {
+  to {
+    background-position: 200% center;
+  }
 }
 
 .nav-actions {
@@ -269,6 +256,24 @@ body[data-theme="light"] .moon-icon {
   border-radius: 28px;
 }
 
+#generateButton {
+  background: var(--ios-accent) !important;
+  box-shadow: 0 4px 14px rgba(var(--ios-accent-rgb), 0.25) !important;
+  color: white !important;
+  border: none !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s, background-color 0.2s !important;
+}
+
+#generateButton:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(var(--ios-accent-rgb), 0.35) !important;
+  background-color: rgba(var(--ios-accent-rgb), 0.9) !important;
+}
+
+#generateButton:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
 /* ========== Main App Layout ========== */
 .app-layout-wrapper {
   display: grid;
@@ -292,8 +297,7 @@ body[data-theme="light"] .moon-icon {
   position: sticky;
   top: 84px;
   height: calc(100vh - 160px);
-  min-height: 520px;
-  max-height: 720px;
+  min-height: 400px;
   background-color: var(--ios-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -646,6 +650,7 @@ body[data-theme="light"] .moon-icon {
   font-weight: 800;
   letter-spacing: -1.5px;
   margin-bottom: 8px;
+  color: var(--ios-text);
 }
 
 .app-subtitle {
@@ -985,15 +990,21 @@ body[data-theme="light"] .moon-icon {
 .media-artwork {
   width: 42px;
   height: 42px;
-  background-color: var(--ios-accent);
-  background: linear-gradient(135deg, var(--ios-accent), #bf5af2);
-  border-radius: 8px;
+  background: transparent;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: white;
-  box-shadow: 0 2px 8px rgba(var(--ios-accent-rgb), 0.2);
+  color: var(--ios-accent);
+}
+
+.mini-dismiss-btn {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+.mini-dismiss-btn:hover {
+  opacity: 1;
 }
 
 .media-metadata {
@@ -1156,6 +1167,7 @@ body[data-theme="light"] .moon-icon {
 .chat-input-container {
   position: relative;
   width: 100%;
+  flex-shrink: 0;
 }
 
 /* Locked overlay */
@@ -1467,7 +1479,8 @@ body[data-theme="light"] .moon-icon {
   .telegram-chat-card {
     position: relative;
     top: 0;
-    height: 520px;
+    height: calc(100vh - 200px);
+    min-height: 400px;
   }
 }
 
@@ -1847,8 +1860,34 @@ body[data-theme="light"] .moon-icon {
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   overflow-y: auto;
-  max-height: 140px;
-  padding-right: 2px;
+  max-height: 200px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.picker-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.picker-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+.picker-grid::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+.picker-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+[data-theme="light"] .picker-grid {
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
+[data-theme="light"] .picker-grid::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+}
+[data-theme="light"] .picker-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.2);
 }
 
 .picker-emoji-btn {
@@ -1890,6 +1929,46 @@ body[data-theme="light"] .moon-icon {
 
 .ios-emoji.animated {
   /* Removed transform: translateZ(0) to fix animation freezing in Safari and Firefox */
+}
+
+/* Emoji shimmer loading placeholder */
+.emoji-shimmer {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: emojiShimmer 1.2s ease-in-out infinite;
+}
+
+[data-theme="light"] .emoji-shimmer {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.05) 25%,
+    rgba(0,0,0,0.1) 50%,
+    rgba(0,0,0,0.05) 75%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes emojiShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Picker emoji button shimmer while loading */
+.picker-emoji-btn .emoji-shimmer {
+  width: 28px;
+  height: 28px;
+}
+
+/* Hide broken image icon */
+.ios-emoji[data-loading="true"],
+.picker-emoji-btn img[data-loading="true"] {
+  color: transparent;
+  font-size: 0;
 }
 
 /* ========== Membership Packages Styles ========== */
@@ -2014,7 +2093,26 @@ body[data-theme="light"] .moon-icon {
 }
 
 .portal-header {
-  margin-bottom: 48px;
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.portal-logo-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  object-fit: cover;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-logo-img {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
 .portal-logo {
@@ -2039,26 +2137,41 @@ body[data-theme="light"] .moon-icon {
 }
 
 .portal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 28px;
   width: 100%;
 }
 
 .portal-card {
   background-color: var(--ios-surface);
   border: 0.5px solid var(--ios-border);
-  border-radius: 24px;
-  padding: 40px 32px;
+  border-radius: 16px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s;
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+}
+
+@media (max-width: 680px) {
+  .portal-card {
+    max-width: 260px;
+    aspect-ratio: 1 / 1;
+    padding: 24px 16px;
+  }
 }
 
 .portal-card:hover {
@@ -2071,13 +2184,11 @@ body[data-theme="light"] .moon-icon {
   width: 64px;
   height: 64px;
   border-radius: 18px;
-  background-color: rgba(var(--ios-accent-rgb), 0.1);
-  color: var(--ios-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  transition: background-color 0.3s, color 0.3s;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
 }
 
 .portal-card-icon svg {
@@ -2085,9 +2196,21 @@ body[data-theme="light"] .moon-icon {
   height: 32px;
 }
 
+.tts-icon-bg {
+  background: linear-gradient(135deg, #ff9500, #ff2d55) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(255, 45, 85, 0.3);
+}
+
+.chat-icon-bg {
+  background: linear-gradient(135deg, #007aff, #00c6ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+}
+
 .portal-card:hover .portal-card-icon {
-  background-color: var(--ios-accent);
-  color: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .portal-card-title {
@@ -2111,6 +2234,12 @@ body[data-theme="light"] .moon-icon {
 .app-layout-wrapper.show-chat-only {
   grid-template-columns: 1fr;
   max-width: 600px;
+}
+
+.app-layout-wrapper.show-chat-only .telegram-chat-card {
+  height: calc(100vh - 140px);
+  max-height: none;
+  min-height: 400px;
 }
 
 /* Pricing custom coloration */
@@ -2175,6 +2304,29 @@ body[data-theme="light"] .moon-icon {
   border-radius: 50%;
   object-fit: cover;
 }
+
+@keyframes iosProgressMove {
+  0% { left: -35%; }
+  100% { left: 100%; }
+}
+
+.mini-progress-container {
+  flex: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+}
+
+.now-playing-bar.generating .mini-progress-container {
+  display: flex;
+}
+
+.now-playing-bar.generating #audioPlayer,
+.now-playing-bar.generating .visualizer-bars {
+  display: none !important;
+}
+
 
 
 

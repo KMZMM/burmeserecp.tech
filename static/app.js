@@ -1428,6 +1428,7 @@ if (langEnBtn && langMmBtn) {
 
 // ===== Dashboard Portal Logic =====
 function showTtsPage() {
+  document.body.classList.remove("chat-only-view");
   if (portalContainer) portalContainer.style.display = "none";
   if (appLayoutWrapper) {
     appLayoutWrapper.style.display = ""; 
@@ -1440,6 +1441,7 @@ function showTtsPage() {
 }
 
 function showChatPage() {
+  document.body.classList.add("chat-only-view");
   if (portalContainer) portalContainer.style.display = "none";
   if (appLayoutWrapper) {
     appLayoutWrapper.style.display = ""; 
@@ -1449,9 +1451,13 @@ function showChatPage() {
   if (appContainer) appContainer.style.display = "none";
   if (chatCard) chatCard.style.display = "flex";
   if (homeBtn) homeBtn.style.display = "inline-flex";
+  if (chatMessages) {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
 }
 
 function showPortalPage() {
+  document.body.classList.remove("chat-only-view");
   if (portalContainer) portalContainer.style.display = "flex";
   if (appLayoutWrapper) {
     appLayoutWrapper.style.display = "none";

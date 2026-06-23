@@ -1484,6 +1484,43 @@ body[data-theme="light"] .moon-icon {
   }
 }
 
+@media (max-width: 768px) {
+  /* Make the Burmese Recap Community view fully immersive/fullscreen like Web Telegram */
+  body.chat-only-view .ios-navbar {
+    display: none;
+  }
+  body.chat-only-view .app-layout-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100vh !important;
+    height: -webkit-fill-available !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  body.chat-only-view .telegram-chat-card {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: -webkit-fill-available !important;
+    border: none !important;
+    border-radius: 0 !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  body.chat-only-view .chat-header {
+    border-radius: 0 !important;
+  }
+  body.chat-only-view .chat-back-btn {
+    display: flex !important;
+  }
+  body.chat-only-view .chat-input-lock-overlay {
+    border-radius: 0 !important;
+  }
+}
+
 @media (max-width: 680px) {
   .app-layout-wrapper {
     padding: 76px 12px 140px;

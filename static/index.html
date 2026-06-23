@@ -188,6 +188,12 @@
       <!-- Chat Header -->
       <div class="chat-header">
         <div class="chat-header-info">
+          <!-- Back button visible only on mobile/immersive view -->
+          <button class="chat-back-btn" onclick="showPortalPage()" aria-label="Go Back" style="background:none; border:none; color:var(--ios-accent); cursor:pointer; font-size:20px; padding:0 8px 0 0; display:none; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
           <div class="chat-avatar">💬</div>
           <div class="chat-meta">
             <div class="chat-title" data-translate="chat-title">BurmeseRecap Community 🇲🇲</div>

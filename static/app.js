@@ -38,7 +38,6 @@ const statusPill = document.getElementById("statusPill");
 const generateButton = document.getElementById("generateButton");
 const downloadLink = document.getElementById("downloadLink");
 const audioPlayer = document.getElementById("audioPlayer");
-const sampleButton = document.getElementById("sampleButton");
 
 const voiceScroller = document.getElementById("voiceScroller");
 const miniBars = document.getElementById("miniBars");
@@ -207,15 +206,6 @@ async function loadVoices() {
 }
 
 // ===== Events =====
-if (sampleButton) {
-  sampleButton.addEventListener("click", () => {
-    if (textInput) {
-      textInput.value = sampleText;
-      updateCount();
-    }
-    setStatus(TRANSLATIONS[currentLang]["sample-loaded"]);
-  });
-}
 
 if (voiceSelect) voiceSelect.addEventListener("change", updateLocaleHint);
 if (textInput) textInput.addEventListener("input", updateCount);
@@ -300,7 +290,6 @@ if (miniBars && audioPlayer) {
 const TRANSLATIONS = {
   en: {
     "nav-title": "🎙️ Voice Studio",
-    "sample-btn": "Try Example",
     "app-title": "Voice Generator",
     "app-subtitle": "Create natural-sounding voiceovers instantly using advanced text-to-speech engine.",
     "script-title": "SCRIPT",
@@ -349,11 +338,28 @@ const TRANSLATIONS = {
     "more-voices": "More Voices",
     "hidden-voices": "hidden",
     "offline-card": "Offline",
-    "no-connection": "No connection"
+    "no-connection": "No connection",
+    "pricing-title": "MEMBERSHIP PLANS",
+    "plan-basic-badge": "Starter",
+    "plan-basic-name": "Basic Plan",
+    "plan-premium-badge": "Popular",
+    "plan-premium-name": "Premium Plan",
+    "plan-pro-badge": "Unlimited",
+    "plan-pro-name": "Pro Plan",
+    "plan-period-month": "/ month",
+    "plan-choose": "Select Plan",
+    "plan-feature-1": "100,000 Characters",
+    "plan-feature-2": "Standard Voices",
+    "plan-feature-3": "Email Support",
+    "plan-feature-4": "500,000 Characters",
+    "plan-feature-5": "Premium Neural Voices",
+    "plan-feature-6": "Priority Support",
+    "plan-feature-7": "Unlimited Characters",
+    "plan-feature-8": "All Premium Voices",
+    "plan-feature-9": "24/7 Dedicated Support"
   },
   my: {
     "nav-title": "🎙️ အသံ စတူဒီယို",
-    "sample-btn": "နမူနာ စမ်းကြည့်ရန်",
     "app-title": "အသံ ဖန်တီးစနစ်",
     "app-subtitle": "အဆင့်မြင့် စာဖတ်စနစ်ကို အသုံးပြုပြီး သဘာဝကျသော နောက်ခံစကားပြောသံများကို ချက်ချင်းဖန်တီးပါ။",
     "script-title": "ဇာတ်ညွှန်း",
@@ -402,7 +408,25 @@ const TRANSLATIONS = {
     "more-voices": "အခြား အသံများ",
     "hidden-voices": "ခု ဝှက်ထားသည်",
     "offline-card": "လိုင်းမရှိပါ",
-    "no-connection": "ချိတ်ဆက်မှုမရှိပါ"
+    "no-connection": "ချက်ဆက်မှုမရှိပါ",
+    "pricing-title": "အသင်းဝင် အစီအစဉ်များ",
+    "plan-basic-badge": "အခြေခံစတင်ရန်",
+    "plan-basic-name": "အခြေခံ အစီအစဉ်",
+    "plan-premium-badge": "လူကြိုက်အများဆုံး",
+    "plan-premium-name": "အဆင့်မြင့် အစီအစဉ်",
+    "plan-pro-badge": "အကန့်အသတ်မဲ့",
+    "plan-pro-name": "ပရို အစီအစဉ်",
+    "plan-period-month": "/ လစဉ်",
+    "plan-choose": "အစီအစဉ် ရွေးချယ်ရန်",
+    "plan-feature-1": "စာလုံးရေ ၁၀၀,၀၀၀ ဖတ်နိုင်သည်။",
+    "plan-feature-2": "ပုံမှန် အသံစနစ်များ",
+    "plan-feature-3": "အီးမေးလ်ဖြင့် ကူညီပံ့ပိုးမှု",
+    "plan-feature-4": "စာလုံးရေ ၅၀၀,၀၀၀ ဖတ်နိုင်သည်။",
+    "plan-feature-5": "အဆင့်မြင့် ဉာဏ်ရည်တု အသံစနစ်များ",
+    "plan-feature-6": "ဦးစားပေး ကူညီပံ့ပိုးမှု",
+    "plan-feature-7": "စာလုံးရေ အကန့်အသတ်မရှိ ဖတ်နိုင်သည်။",
+    "plan-feature-8": "အဆင့်မြင့် အသံစနစ်အားလုံး အသုံးပြုနိုင်သည်။",
+    "plan-feature-9": "၂၄/၇ သီးသန့် ကူညီပံ့ပိုးမှု"
   }
 };
 

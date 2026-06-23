@@ -1437,7 +1437,6 @@ function showTtsPage() {
   }
   if (appContainer) appContainer.style.display = "block";
   if (chatCard) chatCard.style.display = "none";
-  if (homeBtn) homeBtn.style.display = "inline-flex";
 }
 
 function showChatPage() {
@@ -1450,7 +1449,6 @@ function showChatPage() {
   }
   if (appContainer) appContainer.style.display = "none";
   if (chatCard) chatCard.style.display = "flex";
-  if (homeBtn) homeBtn.style.display = "inline-flex";
   if (chatMessages) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -1463,12 +1461,10 @@ function showPortalPage() {
     appLayoutWrapper.style.display = "none";
     appLayoutWrapper.classList.remove("show-tts-only", "show-chat-only");
   }
-  if (homeBtn) homeBtn.style.display = "none";
 }
 
 if (goTtsBtn) goTtsBtn.addEventListener("click", showTtsPage);
 if (goChatBtn) goChatBtn.addEventListener("click", showChatPage);
-if (homeBtn) homeBtn.addEventListener("click", showPortalPage);
 
 // ===== Init =====
 updateCount();

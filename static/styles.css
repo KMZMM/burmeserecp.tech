@@ -1513,12 +1513,18 @@ body[data-theme="light"] .moon-icon {
   body.chat-only-view .chat-header {
     border-radius: 0 !important;
   }
-  body.chat-only-view .chat-back-btn {
-    display: flex !important;
-  }
   body.chat-only-view .chat-input-lock-overlay {
     border-radius: 0 !important;
   }
+}
+
+.tts-back-btn {
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.tts-back-btn:hover {
+  transform: translateX(-4px);
+  opacity: 0.8;
 }
 
 @media (max-width: 680px) {

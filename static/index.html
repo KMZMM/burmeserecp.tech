@@ -28,12 +28,6 @@
         <span class="nav-title" data-translate="nav-title">Burmese Recap</span>
       </div>
       <div class="nav-actions">
-        <button class="ios-btn icon-only" id="homeBtn" aria-label="Back to Portal" title="Back to Portal" style="display: none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="navbar-icon-svg">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-        </button>
         <div class="ios-segmented-control header-lang-selector">
           <button class="control-segment active" id="langEnBtn">EN</button>
           <button class="control-segment" id="langMmBtn">မြန်မာ</button>
@@ -91,9 +85,16 @@
     <main class="app-container">
       
       <!-- Hero Header -->
-      <header class="app-header">
-        <h1 class="app-title" data-translate="app-title">Generate Text To Speech</h1>
-        <p class="app-subtitle" data-translate="app-subtitle">Create natural-sounding voiceovers instantly using advanced text-to-speech engine.</p>
+      <header class="app-header" style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 32px;">
+        <button class="tts-back-btn" onclick="showPortalPage()" aria-label="Go Back" style="position: absolute; left: 0; background: none; border: none; color: var(--ios-accent); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: 28px;">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div style="text-align: center;">
+          <h1 class="app-title" data-translate="app-title" style="margin-bottom: 8px;">Generate Text To Speech</h1>
+          <p class="app-subtitle" data-translate="app-subtitle" style="margin: 0 auto;">Create natural-sounding voiceovers instantly using advanced text-to-speech engine.</p>
+        </div>
       </header>
 
       <form id="ttsForm" class="ios-form" novalidate>
@@ -188,8 +189,8 @@
       <!-- Chat Header -->
       <div class="chat-header">
         <div class="chat-header-info">
-          <!-- Back button visible only on mobile/immersive view -->
-          <button class="chat-back-btn" onclick="showPortalPage()" aria-label="Go Back" style="background:none; border:none; color:var(--ios-accent); cursor:pointer; font-size:20px; padding:0 8px 0 0; display:none; align-items:center; justify-content:center;">
+          <!-- Back button visible on all views to return to portal -->
+          <button class="chat-back-btn" onclick="showPortalPage()" aria-label="Go Back" style="background:none; border:none; color:var(--ios-accent); cursor:pointer; font-size:20px; padding:0 8px 0 0; display:flex; align-items:center; justify-content:center;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <link rel="stylesheet" href="styles.css?v=23" />
   <!-- Local auth flow triggers -->
 </head>
 <body>
@@ -378,14 +378,14 @@
       </div>
       
       <!-- iOS Segmented Control Tab Switcher -->
-      <div class="ios-segmented-control">
+      <div class="ios-segmented-control" style="margin-bottom: 24px;">
         <button class="control-segment active" id="tabSignInBtn" data-translate="tab-signin">Sign In</button>
         <button class="control-segment" id="tabSignUpBtn" data-translate="tab-signup">Sign Up</button>
       </div>
-
-      <div class="modal-body">
-        <!-- Sign In Form -->
-        <form id="signInForm" class="modal-form">
+      
+      <!-- Tab: Sign In (Email only lookup) -->
+      <div class="modal-tab-content active" id="signInTab">
+        <form id="signInForm" class="ios-form">
           <p class="form-desc" data-translate="signin-desc">Enter your registered email to join the chat.</p>
           <div class="form-group">
             <label for="signInEmail" data-translate="label-email">Email Address</label>
@@ -394,9 +394,11 @@
           <div id="signInError" class="auth-error-msg"></div>
           <button type="submit" class="ios-btn primary large-btn" data-translate="btn-signin">Sign In</button>
         </form>
-
-        <!-- Sign Up Form -->
-        <form id="signUpForm" class="modal-form" style="display: none;">
+      </div>
+      
+      <!-- Tab: Sign Up -->
+      <div class="modal-tab-content" id="signUpTab">
+        <form id="signUpForm" class="ios-form">
           <p class="form-desc" data-translate="signup-desc">Create an account to start sharing messages.</p>
           <div class="form-group">
             <label for="signUpUsername" data-translate="label-username">Username / Nickname</label>
@@ -439,6 +441,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=21" defer></script>
+  <script src="app.js?v=23" defer></script>
 </body>
 </html>

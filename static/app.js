@@ -1133,6 +1133,8 @@ function connectWebSocket() {
         }
       }
 
+      if (message.type === 'system') {
+        appendChatMessage("System", message.text, false, '', 'system');
       } else if (message.type === 'message') {
         const isSelf = message.sender === myUsername;
         if (isSelf && message.tempId) {

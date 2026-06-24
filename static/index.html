@@ -32,6 +32,10 @@
           <button class="control-segment active" id="langEnBtn">EN</button>
           <button class="control-segment" id="langMmBtn">မြန်မာ</button>
         </div>
+        <button class="ios-btn profile-badge-btn" id="loginHeaderBtn" title="Sign In / Sign Up">
+          <span class="profile-btn-icon">👤</span>
+          <span class="profile-btn-text" data-translate="login-btn">Sign In</span>
+        </button>
         <button class="ios-btn icon-only" id="premiumBtn" aria-label="Membership Plans" title="Membership Plans">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="navbar-icon-svg premium-crown-svg">
             <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"></path>
@@ -238,6 +242,7 @@
             <button class="chat-input-icon emoji-trigger" type="button" aria-label="Add emoji">😊</button>
             <input type="text" id="chatMessageInput" placeholder="Write a message..." autocomplete="off" disabled />
             <button class="chat-input-icon attach-trigger" type="button" aria-label="Attach file">📎</button>
+            <input type="file" id="chatFileInput" accept="image/*,video/*,application/*,text/*" style="display: none;" />
           </div>
           <button class="chat-send-btn" id="chatSendButton" aria-label="Send message" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -415,8 +420,14 @@
               <!-- Dynamically populated preset avatars plus active states -->
             </div>
             <div class="custom-avatar-row">
-              <label for="signUpAvatarCustom" data-translate="label-custom-avatar">Or Custom Avatar URL</label>
-              <input type="url" id="signUpAvatarCustom" placeholder="https://images.unsplash.com/... or leave blank" />
+              <label for="signUpAvatarCustom" data-translate="label-custom-avatar">Or Custom Avatar URL / Upload</label>
+              <div class="avatar-upload-wrapper" style="display: flex; gap: 8px;">
+                <input type="url" id="signUpAvatarCustom" placeholder="https://images.unsplash.com/... or upload" style="flex: 1;" />
+                <button type="button" class="ios-btn secondary" id="avatarUploadBtn" style="padding: 0 12px; font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+                  📁 Upload
+                </button>
+              </div>
+              <input type="file" id="signUpAvatarFile" accept="image/*" style="display: none;" />
             </div>
           </div>
           

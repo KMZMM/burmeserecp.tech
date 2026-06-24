@@ -622,7 +622,7 @@ function initUserSession() {
     
     // Update Header Button to Sign Out
     if (loginHeaderBtn) {
-      loginHeaderBtn.innerHTML = `<img src="${myAvatarUrl}" class="account-pic" style="width:16px;height:16px;border:none;margin-right:4px;border-radius:50%;object-fit:cover;" /> ${TRANSLATIONS[currentLang]["logout-btn"]}`;
+      loginHeaderBtn.innerHTML = `<img src="${myAvatarUrl}" class="account-pic" style="border:none;border-radius:50%;object-fit:cover;" /> <span class="profile-btn-text">${TRANSLATIONS[currentLang]["logout-btn"]}</span>`;
       loginHeaderBtn.title = currentLang === "en" ? `Signed in as ${myUsername}. Click to Sign Out.` : `${myUsername} အဖြစ် အကောင့်ဝင်ထားသည်။ ထွက်ရန် နှိပ်ပါ။`;
     }
   } else {
@@ -641,7 +641,8 @@ function initUserSession() {
     
     // Update Header Button to Sign In
     if (loginHeaderBtn) {
-      loginHeaderBtn.innerHTML = TRANSLATIONS[currentLang]["login-btn"];
+      const cleanLoginText = TRANSLATIONS[currentLang]["login-btn"].replace('👤 ', '');
+      loginHeaderBtn.innerHTML = `<span class="profile-btn-icon">👤</span> <span class="profile-btn-text">${cleanLoginText}</span>`;
       loginHeaderBtn.title = TRANSLATIONS[currentLang]["lock-signin-btn"];
     }
   }
@@ -961,7 +962,7 @@ function showContextMenu(e, messageId, isSelf) {
   });
 }
 
-function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}) {
+function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}) {
   if (!chatMessages) return;
 
   const msgDiv = document.createElement("div");
@@ -1009,18 +1010,63 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
     }
 
     const bubble = msgDiv.querySelector('.msg-bubble');
-    if (bubble && messageId) {
-      renderReactions(bubble, messageId, reactions);
+    if (bubble) {
+      // Render attachments (images, video, documents)
+      if (attachment && attachment.url) {
+        bubble.classList.add('msg-bubble-has-attachment');
+        const attachDiv = document.createElement('div');
+        
+        if (attachment.content_type && attachment.content_type.startsWith("image/")) {
+          attachDiv.className = "msg-bubble-media";
+          attachDiv.innerHTML = `<img src="${attachment.url}" alt="${attachment.filename || 'Image'}" loading="lazy" />`;
+          attachDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.open(attachment.url, '_blank');
+          });
+        } else if (attachment.content_type && attachment.content_type.startsWith("video/")) {
+          attachDiv.className = "msg-video-player";
+          attachDiv.innerHTML = `<video src="${attachment.url}" controls preload="metadata" playsinline></video>`;
+          attachDiv.addEventListener('click', (e) => e.stopPropagation());
+        } else {
+          attachDiv.style.display = "contents";
+          const sizeMB = attachment.size ? (attachment.size / 1024 / 1024).toFixed(1) + " MB" : "File";
+          let fileIcon = "📄";
+          if (attachment.content_type && attachment.content_type.startsWith("audio/")) fileIcon = "🎵";
+          else if (attachment.filename && attachment.filename.endsWith(".pdf")) fileIcon = "📕";
+          else if (attachment.filename && (attachment.filename.endsWith(".zip") || attachment.filename.endsWith(".rar"))) fileIcon = "📦";
 
-      const isDesktop = window.matchMedia("(hover: hover)").matches;
-      if (isDesktop) {
-        renderHoverReactions(bubble, messageId);
+          attachDiv.innerHTML = `
+            <a href="${attachment.url}" class="msg-file-card" target="_blank" download="${attachment.filename || 'file'}" onclick="event.stopPropagation();">
+              <div class="file-icon-circle">${fileIcon}</div>
+              <div class="file-info">
+                <div class="file-name">${attachment.filename || 'Attachment'}</div>
+                <div class="file-size">${sizeMB}</div>
+              </div>
+            </a>
+          `;
+        }
+
+        const textEl = bubble.querySelector('.msg-text');
+        bubble.insertBefore(attachDiv, textEl);
+
+        if (!text || text.trim() === '') {
+          textEl.style.display = 'none';
+        }
       }
 
-      bubble.addEventListener('click', (e) => {
-        e.stopPropagation();
-        showContextMenu(e, messageId, isSelf);
-      });
+      if (messageId) {
+        renderReactions(bubble, messageId, reactions);
+
+        const isDesktop = window.matchMedia("(hover: hover)").matches;
+        if (isDesktop) {
+          renderHoverReactions(bubble, messageId);
+        }
+
+        bubble.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showContextMenu(e, messageId, isSelf);
+        });
+      }
     }
   }
 
@@ -1083,7 +1129,7 @@ function connectWebSocket() {
         appendChatMessage("System", message.text, false, '', 'system');
       } else if (message.type === 'message') {
         const isSelf = message.sender === myUsername;
-        appendChatMessage(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url, message.message_id, message.reactions);
+        appendChatMessage(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url, message.message_id, message.reactions, message.attachment);
       } else if (message.type === 'delete') {
         const msgEl = chatMessages.querySelector(`[data-msg-id="${message.message_id}"]`);
         if (msgEl) {
@@ -1145,12 +1191,12 @@ function handleSendChatMessage() {
 
 // ===== Preset Avatars list =====
 const PRESET_AVATARS = [
-  "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=80&h=80&q=80",
-  "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=80&h=80&q=80",
-  "https://images.unsplash.com/photo-1580477667995-2b94f01c9516?auto=format&fit=crop&w=80&h=80&q=80",
-  "https://images.unsplash.com/photo-1560169897-fc0cdbdfa4d5?auto=format&fit=crop&w=80&h=80&q=80",
-  "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=80&h=80&q=80",
-  "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=80&h=80&q=80"
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Aria",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Felix",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Lulu",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Buster",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Patches",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Bubba"
 ];
 
 // ===== Membership Plans Modal Flow =====
@@ -1230,6 +1276,89 @@ function renderPresetAvatars() {
       selectedAvatarUrl = url;
     });
     avatarGrid.appendChild(opt);
+  });
+}
+
+// Custom Avatar Upload Integration
+const avatarUploadBtn = document.getElementById("avatarUploadBtn");
+const signUpAvatarFile = document.getElementById("signUpAvatarFile");
+
+if (avatarUploadBtn && signUpAvatarFile) {
+  avatarUploadBtn.addEventListener("click", () => {
+    signUpAvatarFile.click();
+  });
+
+  signUpAvatarFile.addEventListener("change", async () => {
+    const file = signUpAvatarFile.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Avatar image must be smaller than 5MB.");
+      return;
+    }
+
+    const originalText = avatarUploadBtn.innerHTML;
+    avatarUploadBtn.disabled = true;
+    avatarUploadBtn.innerHTML = "⏳ Uploading...";
+
+    try {
+      const response = await fetch("/api/storage/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, content_type: file.type })
+      });
+
+      if (!response.ok) throw new Error("Failed to get presigned URL");
+      const data = await response.json();
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", data.upload_url, true);
+      xhr.setRequestHeader("Content-Type", file.type);
+      xhr.setRequestHeader("x-amz-acl", "public-read");
+
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 201) {
+          const downloadUrl = data.download_url;
+          signUpAvatarCustom.value = downloadUrl;
+          selectedAvatarUrl = downloadUrl;
+
+          const opt = document.createElement("div");
+          opt.className = "avatar-option active";
+          opt.innerHTML = `<img src="${downloadUrl}" alt="Custom Uploaded Avatar" />`;
+          
+          if (avatarGrid) {
+            avatarGrid.querySelectorAll(".avatar-option").forEach(o => o.classList.remove("active"));
+            avatarGrid.insertBefore(opt, avatarGrid.firstChild);
+          }
+
+          opt.addEventListener("click", () => {
+            avatarGrid.querySelectorAll(".avatar-option").forEach(o => o.classList.remove("active"));
+            opt.classList.add("active");
+            selectedAvatarUrl = downloadUrl;
+            signUpAvatarCustom.value = downloadUrl;
+          });
+
+          showToast("Avatar uploaded successfully!");
+        } else {
+          showToast("Upload failed: " + xhr.statusText);
+        }
+        avatarUploadBtn.disabled = false;
+        avatarUploadBtn.innerHTML = originalText;
+      };
+
+      xhr.onerror = () => {
+        showToast("Upload failed due to network error.");
+        avatarUploadBtn.disabled = false;
+        avatarUploadBtn.innerHTML = originalText;
+      };
+
+      xhr.send(file);
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      showToast("Avatar upload failed: " + err.message);
+      avatarUploadBtn.disabled = false;
+      avatarUploadBtn.innerHTML = originalText;
+    }
   });
 }
 
@@ -1422,13 +1551,150 @@ if (pickerGrid) {
   });
 }
 
+// Chat Attachment Upload and Progress Tracker Logic
+function uploadChatAttachment(file) {
+  if (!socket || socket.readyState !== WebSocket.OPEN || !isUserSignedIn) return;
+
+  if (file.size > 50 * 1024 * 1024) {
+    showToast(currentLang === 'en' ? "File must be smaller than 50MB." : "ဖိုင်အရွယ်အစား 50MB အောက် ဖြစ်ရပါမည်။");
+    return;
+  }
+
+  const tempId = "temp-upload-" + Date.now();
+  const timeStr = formatCurrentTime();
+  
+  let fileIcon = "📄";
+  if (file.type.startsWith("image/")) fileIcon = "🖼️";
+  else if (file.type.startsWith("video/")) fileIcon = "🎥";
+  else if (file.type.startsWith("audio/")) fileIcon = "🎵";
+
+  const msgDiv = document.createElement("div");
+  msgDiv.id = tempId;
+  msgDiv.className = "chat-message sent";
+  msgDiv.innerHTML = `
+    <div class="msg-bubble msg-bubble-has-attachment">
+      <div class="msg-file-card" style="position:relative; margin-bottom: 0;">
+        <div class="file-icon-circle">${fileIcon}</div>
+        <div class="file-info">
+          <div class="file-name">${file.name}</div>
+          <div class="file-size">${(file.size / 1024 / 1024).toFixed(1)} MB</div>
+        </div>
+        <div class="upload-progress-overlay">
+          <div class="progress-spinner"></div>
+          <div class="progress-text">0%</div>
+        </div>
+      </div>
+      <div class="msg-time">
+        <span>${timeStr}</span>
+        <span class="msg-status-ticks">...</span>
+      </div>
+    </div>
+  `;
+  if (chatMessages) {
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  const progressTextEl = msgDiv.querySelector(".progress-text");
+
+  fetch("/api/storage/presign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, content_type: file.type })
+  })
+  .then(async (res) => {
+    if (!res.ok) throw new Error("Sign request failed");
+    return res.json();
+  })
+  .then((data) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", data.upload_url, true);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.setRequestHeader("x-amz-acl", "public-read");
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        if (progressTextEl) {
+          progressTextEl.textContent = percent + "%";
+        }
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 200 || xhr.status === 201) {
+        const tempBubble = document.getElementById(tempId);
+        if (tempBubble) tempBubble.remove();
+
+        const payload = {
+          text: "",
+          avatarBg: "",
+          avatar_url: myAvatarUrl,
+          attachment: {
+            url: data.download_url,
+            filename: file.name,
+            content_type: file.type,
+            size: file.size
+          }
+        };
+        socket.send(JSON.stringify(payload));
+      } else {
+        failUpload("Upload failed: " + xhr.statusText);
+      }
+    };
+
+    xhr.onerror = () => {
+      failUpload("Network error during upload.");
+    };
+
+    xhr.send(file);
+  })
+  .catch((err) => {
+    console.error("Attachment upload error:", err);
+    failUpload(err.message);
+  });
+
+  function failUpload(reason) {
+    const tempBubble = document.getElementById(tempId);
+    if (tempBubble) {
+      const overlay = tempBubble.querySelector(".upload-progress-overlay");
+      if (overlay) {
+        overlay.innerHTML = `<span style="font-size:16px;">⚠️</span><span class="progress-text" style="font-size:9px;">Failed</span>`;
+        overlay.style.background = "rgba(255, 59, 48, 0.7)";
+      }
+    }
+    showToast(reason);
+    setTimeout(() => {
+      if (tempBubble) tempBubble.remove();
+    }, 4000);
+  }
+}
+
 if (emojiTrigger && emojiPicker) {
   // Render trigger icon using the high-quality animated WebP emoji
   emojiTrigger.innerHTML = getEmojiHTML("😊", 20);
   
   const attachTrigger = document.querySelector(".attach-trigger");
-  if (attachTrigger) {
+  const chatFileInput = document.getElementById("chatFileInput");
+
+  if (attachTrigger && chatFileInput) {
     attachTrigger.innerHTML = getEmojiHTML("📎", 18);
+    attachTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!isUserSignedIn) {
+        openAuthModal();
+        return;
+      }
+      chatFileInput.click();
+    });
+
+    chatFileInput.addEventListener("change", () => {
+      const file = chatFileInput.files[0];
+      if (file) {
+        uploadChatAttachment(file);
+      }
+      chatFileInput.value = "";
+    });
   }
 
   emojiTrigger.addEventListener("click", (e) => {

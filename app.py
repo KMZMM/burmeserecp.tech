@@ -9,6 +9,8 @@ from typing import Any
 import urllib.request
 import urllib.parse
 import uuid
+import requests
+import boto3
 
 import edge_tts
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -38,6 +40,10 @@ class LoginRequest(BaseModel):
 
 # Google auth request model removed
 
+class PresignRequest(BaseModel):
+    filename: str
+    content_type: str
+
 
 app = FastAPI(title="burmeserecp.tech")
 app.add_middleware(
@@ -48,10 +54,60 @@ app.add_middleware(
 )
 
 DB_PATH = "users.db"
+CREDS_PATH = "C:/Users/HP/.gemini/antigravity/brain/47446197-b7fd-43a6-a29d-da44be16af0f/scratch/infrastructure_credentials.json"
+
+def check_and_update_db_status():
+    try:
+        if os.path.exists(CREDS_PATH):
+            with open(CREDS_PATH, "r") as f:
+                creds = json.load(f)
+            db_config = creds.get("digitalocean_database", {})
+            if db_config.get("status") != "active" and db_config.get("id"):
+                API_KEY = creds.get("do_api_token") or os.environ.get("DIGITALOCEAN_TOKEN")
+                if not API_KEY:
+                    return
+                headers = {"Authorization": f"Bearer {API_KEY}"}
+                db_id = db_config.get("id")
+                r = requests.get(f"https://api.digitalocean.com/v2/databases/{db_id}", headers=headers, timeout=3)
+                if r.status_code == 200:
+                    status = r.json().get("database", {}).get("status")
+                    if status == "active":
+                        creds["digitalocean_database"]["status"] = "active"
+                        creds["digitalocean_database"]["connection"] = r.json().get("database", {}).get("connection", {})
+                        with open(CREDS_PATH, "w") as fw:
+                            json.dump(creds, fw, indent=2)
+                        print("Database cluster has become active! Config updated.")
+    except Exception as e:
+        print("Error checking DB status:", e)
+
+def get_db_connection():
+    try:
+        if os.path.exists(CREDS_PATH):
+            with open(CREDS_PATH, "r") as f:
+                creds = json.load(f)
+            db_config = creds.get("digitalocean_database", {})
+            conn_info = db_config.get("connection", {})
+            if conn_info and db_config.get("status") == "active":
+                import psycopg2
+                conn = psycopg2.connect(
+                    host=conn_info.get("host"),
+                    port=conn_info.get("port"),
+                    user=conn_info.get("user"),
+                    password=conn_info.get("password"),
+                    database=conn_info.get("database"),
+                    sslmode="require",
+                    connect_timeout=3
+                )
+                return conn, "postgres"
+    except Exception as e:
+        print("PostgreSQL connection failed, falling back to SQLite:", e)
+    
+    conn = sqlite3.connect(DB_PATH)
+    return conn, "sqlite"
 
 def get_total_users_count() -> int:
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn, db_type = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM users")
         count = cursor.fetchone()[0]
@@ -87,15 +143,45 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-MAX_RECENT_MESSAGES = 30
-recent_messages: list[dict] = []
-
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
   await manager.connect(websocket)
   
-  # Send recent message history to the newly connected user
-  for msg in recent_messages:
+  # Fetch recent message history from database
+  conn, db_type = get_db_connection()
+  cursor = conn.cursor()
+  db_history = []
+  try:
+      cursor.execute("SELECT id, sender, text, avatar_bg, avatar_url, reactions, attachment FROM messages ORDER BY created_at DESC LIMIT 30")
+      rows = cursor.fetchall()
+      rows.reverse()
+      for r in rows:
+          try:
+              reactions = json.loads(r[5]) if r[5] else {}
+          except Exception:
+              reactions = {}
+          try:
+              attachment = json.loads(r[6]) if r[6] else {}
+          except Exception:
+              attachment = {}
+              
+          db_history.append({
+              "type": "message",
+              "message_id": r[0],
+              "sender": r[1],
+              "text": r[2] or "",
+              "avatarBg": r[3] or "",
+              "avatar_url": r[4] or "",
+              "reactions": reactions,
+              "attachment": attachment
+          })
+  except Exception as e:
+      print("Error loading chat history:", e)
+  finally:
+      conn.close()
+
+  # Send history to the newly connected user
+  for msg in db_history:
     try:
       await websocket.send_json(msg)
     except Exception:
@@ -116,56 +202,86 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
       action = data.get("action")
       if action == "delete":
         msg_id = data.get("message_id")
-        found_msg = None
-        for msg in recent_messages:
-          if msg.get("message_id") == msg_id:
-            found_msg = msg
-            break
-        if found_msg and found_msg.get("sender") == username:
-          recent_messages.remove(found_msg)
-          await manager.broadcast({
-            "type": "delete",
-            "message_id": msg_id
-          })
+        conn, db_type = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            if db_type == "postgres":
+                cursor.execute("SELECT sender FROM messages WHERE id = %s", (msg_id,))
+            else:
+                cursor.execute("SELECT sender FROM messages WHERE id = ?", (msg_id,))
+            row = cursor.fetchone()
+            if row and row[0] == username:
+                if db_type == "postgres":
+                    cursor.execute("DELETE FROM messages WHERE id = %s", (msg_id,))
+                else:
+                    cursor.execute("DELETE FROM messages WHERE id = ?", (msg_id,))
+                conn.commit()
+                await manager.broadcast({
+                  "type": "delete",
+                  "message_id": msg_id
+                })
+        except Exception as e:
+            print("Failed to delete message:", e)
+        finally:
+            conn.close()
         continue
         
       elif action == "react":
         msg_id = data.get("message_id")
         emoji = data.get("emoji")
         if msg_id and emoji:
-          for msg in recent_messages:
-            if msg.get("message_id") == msg_id:
-              reactions = msg.setdefault("reactions", {})
-              
-              # Enforce 1 reaction limit: remove user's name from any other emoji on this message
-              other_emojis_to_cleanup = []
-              for k, u_list in reactions.items():
-                if k != emoji and username in u_list:
-                  u_list.remove(username)
-                  if not u_list:
-                    other_emojis_to_cleanup.append(k)
-              for k in other_emojis_to_cleanup:
-                del reactions[k]
-              
-              # Toggle the target emoji
-              user_list = reactions.setdefault(emoji, [])
-              if username in user_list:
-                user_list.remove(username)
-                if not user_list:
-                  del reactions[emoji]
+          conn, db_type = get_db_connection()
+          cursor = conn.cursor()
+          try:
+              if db_type == "postgres":
+                  cursor.execute("SELECT reactions FROM messages WHERE id = %s", (msg_id,))
               else:
-                user_list.append(username)
-              
-              await manager.broadcast({
-                "type": "react_update",
-                "message_id": msg_id,
-                "reactions": reactions
-              })
-              break
+                  cursor.execute("SELECT reactions FROM messages WHERE id = ?", (msg_id,))
+              row = cursor.fetchone()
+              if row:
+                  reactions = json.loads(row[0]) if row[0] else {}
+                  
+                  # Enforce 1 reaction limit: remove user's name from any other emoji on this message
+                  other_emojis_to_cleanup = []
+                  for k, u_list in reactions.items():
+                    if k != emoji and username in u_list:
+                      u_list.remove(username)
+                      if not u_list:
+                        other_emojis_to_cleanup.append(k)
+                  for k in other_emojis_to_cleanup:
+                    del reactions[k]
+                  
+                  # Toggle the target emoji
+                  user_list = reactions.setdefault(emoji, [])
+                  if username in user_list:
+                    user_list.remove(username)
+                    if not user_list:
+                      del reactions[emoji]
+                  else:
+                    user_list.append(username)
+                  
+                  # Update DB
+                  reactions_str = json.dumps(reactions)
+                  if db_type == "postgres":
+                      cursor.execute("UPDATE messages SET reactions = %s WHERE id = %s", (reactions_str, msg_id))
+                  else:
+                      cursor.execute("UPDATE messages SET reactions = ? WHERE id = ?", (reactions_str, msg_id))
+                  conn.commit()
+                  
+                  await manager.broadcast({
+                    "type": "react_update",
+                    "message_id": msg_id,
+                    "reactions": reactions
+                  })
+          except Exception as e:
+              print("Failed to react:", e)
+          finally:
+              conn.close()
         continue
 
       # Normal message broadcast
       msg_id = str(uuid.uuid4())
+      attachment_data = data.get("attachment", {})
       msg_payload = {
         "type": "message",
         "message_id": msg_id,
@@ -173,11 +289,31 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
         "text": data.get("text", "").strip(),
         "avatarBg": data.get("avatarBg", ""),
         "avatar_url": data.get("avatar_url", ""),
-        "reactions": {}
+        "reactions": {},
+        "attachment": attachment_data
       }
-      recent_messages.append(msg_payload)
-      if len(recent_messages) > MAX_RECENT_MESSAGES:
-        recent_messages.pop(0)
+      
+      # Save to database
+      conn, db_type = get_db_connection()
+      cursor = conn.cursor()
+      try:
+          reactions_str = json.dumps({})
+          attachment_str = json.dumps(attachment_data)
+          if db_type == "postgres":
+              cursor.execute(
+                  "INSERT INTO messages (id, sender, text, avatar_bg, avatar_url, reactions, attachment) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                  (msg_id, username, msg_payload["text"], msg_payload["avatarBg"], msg_payload["avatar_url"], reactions_str, attachment_str)
+              )
+          else:
+              cursor.execute(
+                  "INSERT INTO messages (id, sender, text, avatar_bg, avatar_url, reactions, attachment) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                  (msg_id, username, msg_payload["text"], msg_payload["avatarBg"], msg_payload["avatar_url"], reactions_str, attachment_str)
+              )
+          conn.commit()
+      except Exception as e:
+          print("Failed to save message:", e)
+      finally:
+          conn.close()
 
       await manager.broadcast(msg_payload)
   except WebSocketDisconnect:
@@ -191,26 +327,66 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
 # DB_PATH defined globally at the top
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    check_and_update_db_status()
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            username TEXT NOT NULL,
-            avatar_url TEXT NOT NULL
-        )
-    """)
+    if db_type == "postgres":
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                username VARCHAR(255) NOT NULL,
+                avatar_url TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id VARCHAR(255) PRIMARY KEY,
+                sender VARCHAR(255) NOT NULL,
+                text TEXT,
+                avatar_bg VARCHAR(255),
+                avatar_url TEXT,
+                reactions TEXT,
+                attachment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                username TEXT NOT NULL,
+                avatar_url TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                sender TEXT NOT NULL,
+                text TEXT,
+                avatar_bg TEXT,
+                avatar_url TEXT,
+                reactions TEXT DEFAULT '{}',
+                attachment TEXT DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    
+    # Check default mock users for signup screen
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
-        cursor.executemany("""
-            INSERT INTO users (email, username, avatar_url) VALUES (?, ?, ?)
-        """, [
+        presets = [
             ("aungkyaw.dev@gmail.com", "Aung Kyaw", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80"),
             ("susandar.story@gmail.com", "Su Sandar", "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80"),
             ("minkhant.recap@gmail.com", "Min Khant", "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=80&h=80&q=80")
-        ])
-        conn.commit()
+        ]
+        if db_type == "postgres":
+            cursor.executemany("INSERT INTO users (email, username, avatar_url) VALUES (%s, %s, %s)", presets)
+        else:
+            cursor.executemany("INSERT INTO users (email, username, avatar_url) VALUES (?, ?, ?)", presets)
+    
+    conn.commit()
     conn.close()
 
 # Initialize DB on load
@@ -218,27 +394,44 @@ init_db()
 
 @app.get("/api/mock-accounts")
 async def get_mock_accounts():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT email, username, avatar_url FROM users")
     rows = cursor.fetchall()
-    accounts = [dict(row) for row in rows]
+    accounts = []
+    for row in rows:
+        accounts.append({
+            "email": row[0],
+            "username": row[1],
+            "avatar_url": row[2]
+        })
     conn.close()
     return JSONResponse(accounts)
 
 @app.post("/api/signup")
 async def signup(payload: SignupRequest):
-    conn = sqlite3.connect(DB_PATH)
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute(
-            "INSERT INTO users (email, username, avatar_url) VALUES (?, ?, ?)",
-            (payload.email.strip().lower(), payload.username.strip(), payload.avatar_url.strip())
-        )
+        email_clean = payload.email.strip().lower()
+        user_clean = payload.username.strip()
+        avatar_clean = payload.avatar_url.strip()
+        
+        if db_type == "postgres":
+            cursor.execute(
+                "INSERT INTO users (email, username, avatar_url) VALUES (%s, %s, %s) RETURNING id",
+                (email_clean, user_clean, avatar_clean)
+            )
+            user_id = cursor.fetchone()[0]
+        else:
+            cursor.execute(
+                "INSERT INTO users (email, username, avatar_url) VALUES (?, ?, ?)",
+                (email_clean, user_clean, avatar_clean)
+            )
+            user_id = cursor.lastrowid
+            
         conn.commit()
-        user_id = cursor.lastrowid
-    except sqlite3.IntegrityError:
+    except Exception as e:
         conn.close()
         raise HTTPException(status_code=400, detail="Account with this email already exists.")
     conn.close()
@@ -252,15 +445,74 @@ async def signup(payload: SignupRequest):
 
 @app.post("/api/login")
 async def login(payload: LoginRequest):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT email, username, avatar_url FROM users WHERE email = ?", (payload.email.strip().lower(),))
+    email_clean = payload.email.strip().lower()
+    if db_type == "postgres":
+        cursor.execute("SELECT email, username, avatar_url FROM users WHERE email = %s", (email_clean,))
+    else:
+        cursor.execute("SELECT email, username, avatar_url FROM users WHERE email = ?", (email_clean,))
     row = cursor.fetchone()
     conn.close()
     if not row:
         raise HTTPException(status_code=404, detail="Account not found. Please sign up first.")
-    return JSONResponse(dict(row))
+    return JSONResponse({
+        "email": row[0],
+        "username": row[1],
+        "avatar_url": row[2]
+    })
+
+@app.post("/api/storage/presign")
+async def generate_presigned_upload_url(payload: PresignRequest):
+    try:
+        if not os.path.exists(CREDS_PATH):
+            raise HTTPException(status_code=500, detail="Storage credentials not found.")
+            
+        with open(CREDS_PATH, "r") as f:
+            creds = json.load(f)
+            
+        spaces_config = creds.get("digitalocean_spaces", {})
+        access_key = spaces_config.get("access_key_id")
+        secret_key = spaces_config.get("secret_access_key")
+        bucket_name = spaces_config.get("bucket_name")
+        region = spaces_config.get("region", "sgp1")
+        
+        if not access_key or not secret_key or not bucket_name:
+            raise HTTPException(status_code=500, detail="Spaces storage not fully configured.")
+            
+        session = boto3.session.Session()
+        s3_client = session.client(
+            's3',
+            region_name=region,
+            endpoint_url=f"https://{region}.digitaloceanspaces.com",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key
+        )
+        
+        file_ext = os.path.splitext(payload.filename)[1]
+        unique_key = f"uploads/{uuid.uuid4().hex}{file_ext}"
+        
+        presigned_url = s3_client.generate_presigned_url(
+            ClientMethod='put_object',
+            Params={
+                'Bucket': bucket_name,
+                'Key': unique_key,
+                'ContentType': payload.content_type,
+                'ACL': 'public-read'
+            },
+            ExpiresIn=3600
+        )
+        
+        public_url = f"https://{bucket_name}.{region}.digitaloceanspaces.com/{unique_key}"
+        
+        return JSONResponse({
+            "upload_url": presigned_url,
+            "download_url": public_url,
+            "filename": payload.filename,
+            "key": unique_key
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate upload signature: {e}")
 
 # Google OAuth handlers removed
 

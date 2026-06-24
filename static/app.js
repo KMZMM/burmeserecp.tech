@@ -25,6 +25,66 @@ function getFileIconSVGByType(fileType) {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
 }
 
+// Progress and Confirmation helpers
+function showProgressModal(title, subtitle) {
+  if (loadingModal) {
+    const titleEl = loadingModal.querySelector(".loading-title");
+    const subEl = loadingModal.querySelector(".loading-subtitle");
+    if (titleEl) titleEl.textContent = title;
+    if (subEl) subEl.textContent = subtitle;
+    loadingModal.style.display = "flex";
+  }
+}
+
+function hideProgressModal() {
+  if (loadingModal) {
+    loadingModal.style.display = "none";
+  }
+}
+
+function showCustomConfirm(title, message, okText, onConfirm) {
+  const confirmModal = document.getElementById("confirmModal");
+  if (!confirmModal) return;
+  
+  const titleEl = confirmModal.querySelector(".confirm-title");
+  const msgEl = confirmModal.querySelector(".confirm-message");
+  const cancelBtn = document.getElementById("confirmCancelBtn");
+  const okBtn = document.getElementById("confirmOkBtn");
+  
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  if (okBtn) {
+    okBtn.textContent = okText;
+    if (okText === "Sign Out" || okText === "ထွက်ရန်") {
+      okBtn.style.background = "#ff3b30";
+      okBtn.style.borderColor = "#ff3b30";
+    } else {
+      okBtn.style.background = "var(--ios-accent)";
+      okBtn.style.borderColor = "var(--ios-accent)";
+    }
+  }
+  
+  confirmModal.style.display = "flex";
+  
+  const cleanup = () => {
+    confirmModal.style.display = "none";
+    cancelBtn.removeEventListener("click", onCancelClick);
+    okBtn.removeEventListener("click", onOkClick);
+  };
+  
+  const onCancelClick = () => {
+    cleanup();
+  };
+  
+  const onOkClick = () => {
+    cleanup();
+    if (onConfirm) onConfirm();
+  };
+  
+  cancelBtn.addEventListener("click", onCancelClick);
+  okBtn.addEventListener("click", onOkClick);
+}
+
 // Safe localStorage wrapper to prevent SecurityError in incognito/private modes
 const safeStorage = {
   getItem(key) {
@@ -310,6 +370,7 @@ if (form) {
       return;
     }
 
+    showProgressModal(TRANSLATIONS[currentLang]["generating"], TRANSLATIONS[currentLang]["generating-voice"]);
     setStatus(TRANSLATIONS[currentLang]["generating-voice"], "loading");
     if (generateButton) {
       generateButton.disabled = true;
@@ -368,6 +429,7 @@ if (form) {
         miniPlayer.style.display = "none";
       }
     } finally {
+      hideProgressModal();
       if (miniPlayer) {
         miniPlayer.classList.remove("generating");
       }
@@ -793,7 +855,7 @@ function getEmojiHTML(emoji, size = 18) {
   const wrapper = `display:inline-flex;position:relative;width:${size}px;height:${size}px;vertical-align:middle;align-items:center;justify-content:center;flex-shrink:0;`;
   const imgStyle = `width:${size}px;height:${size}px;vertical-align:middle;opacity:0;transition:opacity 0.15s;`;
   if (animatedEmojiMap[emoji]) {
-    return `<span style="${wrapper}">${shimmer}<img src="${animatedEmojiMap[emoji]}" class="ios-emoji animated" style="${imgStyle}" alt="${emoji}" ${loadAttr} ${retryAttr} /></span>`;
+    return `<span style="${wrapper}">${shimmer}<img src="${animatedEmojiMap[emoji]}" class="ios-emoji animated" style="${imgStyle}" alt="${emoji}" ${loadAttr} ${retryAttr} loading="lazy" /></span>`;
   }
   const hex = emojiToHex(emoji);
   return `<span style="${wrapper}">${shimmer}<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${hex}.png" class="ios-emoji" style="${imgStyle}" alt="${emoji}" ${loadAttr} ${retryAttr} /></span>`;
@@ -1504,6 +1566,8 @@ if (signInForm) {
     const emailVal = signInEmail.value.trim();
     if (!emailVal) return;
 
+    showProgressModal(currentLang === 'en' ? "Signing In" : "ဝင်ရောက်နေသည်", currentLang === 'en' ? "Verifying your account..." : "အကောင့်ကို စစ်ဆေးနေပါသည်...");
+
     fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1517,6 +1581,7 @@ if (signInForm) {
       return res.json();
     })
     .then((profile) => {
+      hideProgressModal();
       safeStorage.setItem("tg_signed_in", "true");
       safeStorage.setItem("tg_username", profile.username);
       safeStorage.setItem("tg_avatar_url", profile.avatar_url);
@@ -1528,6 +1593,7 @@ if (signInForm) {
       if (socket) socket.close(); // trigger reconnect
     })
     .catch((err) => {
+      hideProgressModal();
       signInError.textContent = err.message;
     });
   });
@@ -1565,6 +1631,7 @@ if (signUpForm) {
       return res.json();
     })
     .then((profile) => {
+      hideProgressModal();
       safeStorage.setItem("tg_signed_in", "true");
       safeStorage.setItem("tg_username", profile.username);
       safeStorage.setItem("tg_avatar_url", profile.avatar_url);
@@ -1576,6 +1643,7 @@ if (signUpForm) {
       if (socket) socket.close(); // trigger reconnect
     })
     .catch((err) => {
+      hideProgressModal();
       signUpError.textContent = err.message;
     });
   });
@@ -1620,12 +1688,15 @@ function insertEmojiAtCursor(emoji) {
   chatMessageInput.setSelectionRange(newPos, newPos);
 }
 
-if (pickerGrid) {
+let isEmojiPickerPopulated = false;
+function populateEmojiPicker() {
+  if (isEmojiPickerPopulated || !pickerGrid) return;
+  pickerGrid.innerHTML = "";
   Object.entries(animatedEmojiMap).forEach(([emoji, url]) => {
     const btn = document.createElement("button");
     btn.className = "picker-emoji-btn";
     btn.type = "button";
-    btn.innerHTML = `<span style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><span class="emoji-shimmer" style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50%;"></span><img src="${url}" alt="${emoji}" style="width:28px;height:28px;opacity:0;transition:opacity 0.15s;object-fit:contain;" onload="this.style.opacity='1';this.parentElement.querySelector('.emoji-shimmer').style.display='none'" onerror="if(!this.dataset.retries){this.dataset.retries=0}this.dataset.retries++;if(this.dataset.retries<3){setTimeout(()=>{this.src=this.src+'&r='+this.dataset.retries},800*this.dataset.retries)}else{this.style.display='none';var s=this.parentElement.querySelector('.emoji-shimmer');if(s){s.textContent='${emoji}';s.classList.remove('emoji-shimmer');s.style.cssText='font-size:22px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;'}}" /></span>`;
+    btn.innerHTML = `<span style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;"><span class="emoji-shimmer" style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50%;"></span><img src="${url}" alt="${emoji}" style="width:28px;height:28px;opacity:0;transition:opacity 0.15s;object-fit:contain;" loading="lazy" onload="this.style.opacity='1';this.parentElement.querySelector('.emoji-shimmer').style.display='none'" onerror="if(!this.dataset.retries){this.dataset.retries=0}this.dataset.retries++;if(this.dataset.retries<3){setTimeout(()=>{this.src=this.src+'&r='+this.dataset.retries},800*this.dataset.retries)}else{this.style.display='none';var s=this.parentElement.querySelector('.emoji-shimmer');if(s){s.textContent='${emoji}';s.classList.remove('emoji-shimmer');s.style.cssText='font-size:22px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;'}}" /></span>`;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       insertEmojiAtCursor(emoji);
@@ -1636,6 +1707,7 @@ if (pickerGrid) {
     });
     pickerGrid.appendChild(btn);
   });
+  isEmojiPickerPopulated = true;
 }
 
 // Chat Attachment Upload and Progress Tracker Logic
@@ -1790,10 +1862,11 @@ if (emojiTrigger && emojiPicker) {
   }
 
   emojiTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const isHidden = emojiPicker.style.display !== "flex";
-    emojiPicker.style.display = isHidden ? "flex" : "none";
-  });
+  e.stopPropagation();
+  populateEmojiPicker();
+  const isHidden = emojiPicker.style.display !== "flex";
+  emojiPicker.style.display = isHidden ? "flex" : "none";
+});
   
   // Close picker when clicking outside
   document.addEventListener("click", (e) => {

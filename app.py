@@ -524,21 +524,26 @@ async def login(payload: LoginRequest):
 @app.post("/api/storage/presign")
 async def generate_presigned_upload_url(payload: PresignRequest):
     try:
-        if not os.path.exists(CREDS_PATH):
-            raise HTTPException(status_code=500, detail="Storage credentials not found.")
-            
-        with open(CREDS_PATH, "r") as f:
-            creds = json.load(f)
-            
-        spaces_config = creds.get("digitalocean_spaces", {})
-        access_key = spaces_config.get("access_key_id")
-        secret_key = spaces_config.get("secret_access_key")
-        bucket_name = spaces_config.get("bucket_name")
-        region = spaces_config.get("region", "sgp1")
-        
+        # Try environment variables first (production on DO App Platform)
+        access_key = os.environ.get("DO_SPACES_KEY")
+        secret_key = os.environ.get("DO_SPACES_SECRET")
+        bucket_name = os.environ.get("DO_SPACES_BUCKET")
+        region = os.environ.get("DO_SPACES_REGION", "sgp1")
+
+        # Fallback to local credentials JSON file (for local dev)
         if not access_key or not secret_key or not bucket_name:
-            raise HTTPException(status_code=500, detail="Spaces storage not fully configured.")
-            
+            if os.path.exists(CREDS_PATH):
+                with open(CREDS_PATH, "r") as f:
+                    creds = json.load(f)
+                spaces_config = creds.get("digitalocean_spaces", {})
+                access_key = access_key or spaces_config.get("access_key_id")
+                secret_key = secret_key or spaces_config.get("secret_access_key")
+                bucket_name = bucket_name or spaces_config.get("bucket_name")
+                region = spaces_config.get("region", region)
+
+        if not access_key or not secret_key or not bucket_name:
+            raise HTTPException(status_code=500, detail="Storage not configured. Set DO_SPACES_KEY, DO_SPACES_SECRET, DO_SPACES_BUCKET environment variables.")
+
         session = boto3.session.Session()
         s3_client = session.client(
             's3',
@@ -547,10 +552,10 @@ async def generate_presigned_upload_url(payload: PresignRequest):
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key
         )
-        
-        file_ext = os.path.splitext(payload.filename)[1]
+
+        file_ext = os.path.splitext(payload.filename)[1].lower()
         unique_key = f"uploads/{uuid.uuid4().hex}{file_ext}"
-        
+
         presigned_url = s3_client.generate_presigned_url(
             ClientMethod='put_object',
             Params={
@@ -561,15 +566,17 @@ async def generate_presigned_upload_url(payload: PresignRequest):
             },
             ExpiresIn=3600
         )
-        
+
         public_url = f"https://{bucket_name}.{region}.digitaloceanspaces.com/{unique_key}"
-        
+
         return JSONResponse({
             "upload_url": presigned_url,
             "download_url": public_url,
             "filename": payload.filename,
             "key": unique_key
         })
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate upload signature: {e}")
 

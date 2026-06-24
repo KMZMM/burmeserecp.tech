@@ -370,7 +370,7 @@ if (form) {
       return;
     }
 
-    showProgressModal(TRANSLATIONS[currentLang]["generating"], TRANSLATIONS[currentLang]["generating-voice"]);
+    // No fullscreen progress modal, show at bottom bar instead
     setStatus(TRANSLATIONS[currentLang]["generating-voice"], "loading");
     if (generateButton) {
       generateButton.disabled = true;
@@ -429,7 +429,7 @@ if (form) {
         miniPlayer.style.display = "none";
       }
     } finally {
-      hideProgressModal();
+      // hideProgressModal();
       if (miniPlayer) {
         miniPlayer.classList.remove("generating");
       }
@@ -1229,9 +1229,13 @@ function showChatSkeleton() {
 function renderChatHistory(messages) {
   if (!chatMessages) return;
   chatHistoryLoaded = true;
+
+  // Extract any local/temp messages that are still sending or uploading
+  const tempBubbles = Array.from(chatMessages.querySelectorAll('[data-msg-id^="temp-"]'));
+
   chatMessages.innerHTML = '<div class="chat-date-separator"><span>Today</span></div>';
 
-  if (!messages || messages.length === 0) {
+  if ((!messages || messages.length === 0) && tempBubbles.length === 0) {
     const empty = document.createElement('div');
     empty.setAttribute('data-empty-state', '1');
     empty.className = 'chat-empty-state';
@@ -1242,10 +1246,20 @@ function renderChatHistory(messages) {
 
   const fragment = document.createDocumentFragment();
   messages.forEach(msg => {
+    // Avoid double rendering if history contains a message that matches a temp bubble
+    const alreadyRendered = tempBubbles.some(bubble => bubble.getAttribute('data-msg-id') === msg.message_id);
+    if (alreadyRendered) return;
+
     const isSelf = msg.sender === myUsername;
     const msgDiv = buildMessageElement(msg.sender, msg.text, isSelf, msg.avatarBg || '', 'message', msg.avatar_url || '', msg.message_id, msg.reactions || {}, msg.attachment || {});
     if (msgDiv) fragment.appendChild(msgDiv);
   });
+
+  // Re-append the temporary sending messages at the bottom
+  tempBubbles.forEach(bubble => {
+    fragment.appendChild(bubble);
+  });
+
   chatMessages.appendChild(fragment);
   requestAnimationFrame(() => { chatMessages.scrollTop = chatMessages.scrollHeight; });
 }
@@ -1329,23 +1343,37 @@ function connectWebSocket() {
         appendChatMessage("System", message.text, false, '', 'system');
       } else if (message.type === 'message') {
         const isSelf = message.sender === myUsername;
+        
+        // Prevent duplicate rendering of messages already in DOM
+        if (message.message_id) {
+          const existing = chatMessages.querySelector(`[data-msg-id="${message.message_id}"]`);
+          if (existing) return;
+        }
+
         if (isSelf && message.tempId) {
           const localBubble = chatMessages.querySelector(`[data-msg-id="${message.tempId}"]`);
           if (localBubble) {
-            localBubble.setAttribute("data-msg-id", message.message_id);
-            const ticksEl = localBubble.querySelector(".msg-status-ticks");
-            if (ticksEl) ticksEl.textContent = "✓✓";
-            const bubbleEl = localBubble.querySelector(".msg-bubble");
-            if (bubbleEl) {
-              renderReactions(bubbleEl, message.message_id, message.reactions);
-              const isDesktop = window.matchMedia("(hover: hover)").matches;
-              if (isDesktop) {
-                renderHoverReactions(bubbleEl, message.message_id);
+            if (message.attachment && message.attachment.url) {
+              // Replace temporary upload preview bubble with final rendered element
+              const newMsg = buildMessageElement(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url, message.message_id, message.reactions, message.attachment);
+              localBubble.replaceWith(newMsg);
+            } else {
+              // Text message: finalize ID, ticks and context menu
+              localBubble.setAttribute("data-msg-id", message.message_id);
+              const ticksEl = localBubble.querySelector(".msg-status-ticks");
+              if (ticksEl) ticksEl.textContent = "✓✓";
+              const bubbleEl = localBubble.querySelector(".msg-bubble");
+              if (bubbleEl) {
+                renderReactions(bubbleEl, message.message_id, message.reactions);
+                const isDesktop = window.matchMedia("(hover: hover)").matches;
+                if (isDesktop) {
+                  renderHoverReactions(bubbleEl, message.message_id);
+                }
+                bubbleEl.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  showContextMenu(e, message.message_id, true);
+                });
               }
-              bubbleEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                showContextMenu(e, message.message_id, true);
-              });
             }
             return;
           }
@@ -1799,6 +1827,7 @@ function populateEmojiPicker() {
 }
 
 // Chat Attachment Upload and Progress Tracker Logic
+// Chat Attachment Upload and Progress Tracker Logic
 function uploadChatAttachment(file) {
   if (!socket || socket.readyState !== WebSocket.OPEN || !isUserSignedIn) return;
 
@@ -1807,34 +1836,85 @@ function uploadChatAttachment(file) {
     return;
   }
 
-  const tempId = "temp-upload-" + Date.now();
+  // Guaranteed unique tempId
+  const tempId = "temp-upload-" + Date.now() + "-" + Math.floor(Math.random() * 1000000);
   const timeStr = formatCurrentTime();
   
   let fileIcon = getFileIconSVGByType(file.type);
 
   const msgDiv = document.createElement("div");
-  msgDiv.id = tempId;
+  msgDiv.setAttribute("data-msg-id", tempId); // Critical to match it later!
   msgDiv.className = "chat-message sent";
-  msgDiv.innerHTML = `
-    <div class="msg-bubble msg-bubble-has-attachment">
-      <div class="msg-file-card" style="position:relative; margin-bottom: 0;">
-        <div class="file-icon-circle">${fileIcon}</div>
-        <div class="file-info">
-          <div class="file-name">${file.name}</div>
-          <div class="file-size">${(file.size / 1024 / 1024).toFixed(1)} MB</div>
+
+  let previewUrl = null;
+  let attachmentHTML = "";
+
+  if (file.type.startsWith("image/")) {
+    previewUrl = URL.createObjectURL(file);
+    attachmentHTML = `
+      <div class="msg-bubble msg-bubble-has-attachment">
+        <div class="msg-bubble-media" style="position:relative; margin-bottom: 0;">
+          <img src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain;" />
+          <div class="upload-progress-overlay">
+            <div class="progress-spinner"></div>
+            <div class="progress-text">0%</div>
+          </div>
         </div>
-        <div class="upload-progress-overlay">
-          <div class="progress-spinner"></div>
-          <div class="progress-text">0%</div>
+        <div class="msg-time">
+          <span>${timeStr}</span>
+          <span class="msg-status-ticks">...</span>
         </div>
       </div>
-      <div class="msg-time">
-        <span>${timeStr}</span>
-        <span class="msg-status-ticks">...</span>
+    `;
+  } else if (file.type.startsWith("video/")) {
+    previewUrl = URL.createObjectURL(file);
+    attachmentHTML = `
+      <div class="msg-bubble msg-bubble-has-attachment">
+        <div class="msg-video-player" style="position:relative; margin-bottom: 0;">
+          <video src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain;" muted></video>
+          <div class="upload-progress-overlay">
+            <div class="progress-spinner"></div>
+            <div class="progress-text">0%</div>
+          </div>
+        </div>
+        <div class="msg-time">
+          <span>${timeStr}</span>
+          <span class="msg-status-ticks">...</span>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } else {
+    // Other files (including audio) show file card during upload
+    attachmentHTML = `
+      <div class="msg-bubble msg-bubble-has-attachment">
+        <div class="msg-file-card" style="position:relative; margin-bottom: 0;">
+          <div class="file-icon-circle">${fileIcon}</div>
+          <div class="file-info">
+            <div class="file-name">${file.name}</div>
+            <div class="file-size">${(file.size / 1024 / 1024).toFixed(1)} MB</div>
+          </div>
+          <div class="upload-progress-overlay">
+            <div class="progress-spinner"></div>
+            <div class="progress-text">0%</div>
+          </div>
+        </div>
+        <div class="msg-time">
+          <span>${timeStr}</span>
+          <span class="msg-status-ticks">...</span>
+        </div>
+      </div>
+    `;
+  }
+
+  msgDiv.innerHTML = attachmentHTML;
+  if (previewUrl) {
+    msgDiv.dataset.previewUrl = previewUrl; // Store to revoke later
+  }
+
   if (chatMessages) {
+    // Remove empty state if present
+    const emptyState = chatMessages.querySelector('.chat-empty-state, [data-empty-state]');
+    if (emptyState) emptyState.remove();
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -1867,13 +1947,20 @@ function uploadChatAttachment(file) {
 
     xhr.onload = () => {
       if (xhr.status === 200 || xhr.status === 201) {
-        const tempBubble = document.getElementById(tempId);
-        if (tempBubble) tempBubble.remove();
+        const tempBubble = chatMessages.querySelector(`[data-msg-id="${tempId}"]`);
+        if (tempBubble) {
+          if (tempBubble.dataset.previewUrl) {
+            URL.revokeObjectURL(tempBubble.dataset.previewUrl);
+          }
+          const overlay = tempBubble.querySelector(".upload-progress-overlay");
+          if (overlay) overlay.style.display = "none";
+        }
 
         const payload = {
           text: "",
           avatarBg: "",
           avatar_url: myAvatarUrl,
+          tempId: tempId, // Send tempId so server broadcasts it back!
           attachment: {
             url: data.download_url,
             filename: file.name,
@@ -1899,27 +1986,30 @@ function uploadChatAttachment(file) {
   });
 
   function failUpload(reason) {
-    const tempBubble = document.getElementById(tempId);
+    const tempBubble = chatMessages.querySelector(`[data-msg-id="${tempId}"]`);
     if (tempBubble) {
+      if (tempBubble.dataset.previewUrl) {
+        URL.revokeObjectURL(tempBubble.dataset.previewUrl);
+      }
       const overlay = tempBubble.querySelector(".upload-progress-overlay");
       if (overlay) {
         overlay.innerHTML = `
-  <span style="display: inline-flex; align-items: center; justify-content: center; color: #ff3b30;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="15" y1="9" x2="9" y2="15"></line>
-      <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-  </span>
-  <span class="progress-text" style="font-size:9px; color: #ff3b30;">Failed</span>
-`;
+          <span style="display: inline-flex; align-items: center; justify-content: center; color: #ff3b30;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </span>
+          <span class="progress-text" style="font-size:9px; color: #ff3b30;">Failed</span>
+        `;
         overlay.style.background = "rgba(255, 59, 48, 0.7)";
       }
+      setTimeout(() => {
+        tempBubble.remove();
+      }, 4000);
     }
     showToast(reason);
-    setTimeout(() => {
-      if (tempBubble) tempBubble.remove();
-    }, 4000);
   }
 }
 
@@ -1941,9 +2031,11 @@ if (emojiTrigger && emojiPicker) {
     });
 
     chatFileInput.addEventListener("change", () => {
-      const file = chatFileInput.files[0];
-      if (file) {
-        uploadChatAttachment(file);
+      const files = chatFileInput.files;
+      if (files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          uploadChatAttachment(files[i]);
+        }
       }
       chatFileInput.value = "";
     });

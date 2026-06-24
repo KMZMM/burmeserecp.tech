@@ -133,13 +133,17 @@ class ConnectionManager:
         return len(self.active_connections)
 
     async def broadcast(self, message: dict):
+        # Only include online count (no expensive DB query per message)
         message["onlineCount"] = self.get_online_count()
-        message["totalUsers"] = get_total_users_count()
+        disconnected = []
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
             except Exception:
-                pass
+                disconnected.append(connection)
+        # Clean up any dead connections discovered during broadcast
+        for conn in disconnected:
+            self.disconnect(conn)
 
 manager = ConnectionManager()
 
@@ -180,14 +184,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
   finally:
       conn.close()
 
-  # Send history to the newly connected user
-  for msg in db_history:
-    try:
-      await websocket.send_json(msg)
-    except Exception:
-      pass
+  # Send history as a single batched packet for smooth rendering
+  try:
+    await websocket.send_json({
+      "type": "history",
+      "messages": db_history,
+      "onlineCount": manager.get_online_count()
+    })
+  except Exception:
+    pass
 
-  # Broadcast online counts without printing a system message
+  # Broadcast updated online count to everyone
   await manager.broadcast({
     "type": "count_update"
   })

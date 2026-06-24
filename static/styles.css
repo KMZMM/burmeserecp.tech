@@ -2793,7 +2793,100 @@ body[data-theme="light"] .moon-icon {
   }
 }
 
+/* ========== Chat Skeleton Loading (Telegram-style) ========== */
+@keyframes skeletonShimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
 
+.chat-skeleton-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 16px;
+  animation: fadeInChat 0.3s ease;
+}
 
+.chat-skeleton-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
 
+.chat-skeleton-msg.sent {
+  flex-direction: row-reverse;
+}
+
+.skel-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 75%);
+  background-size: 800px 100%;
+  animation: skeletonShimmer 1.4s infinite linear;
+}
+
+.skel-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 18px 18px 18px 4px;
+  background: rgba(255,255,255,0.05);
+  min-width: 100px;
+  max-width: 65%;
+}
+
+.skel-bubble.skel-bubble-right {
+  border-radius: 18px 18px 4px 18px;
+  background: rgba(10, 132, 255, 0.12);
+  align-items: flex-end;
+}
+
+.skel-line {
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.07) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.07) 75%);
+  background-size: 800px 100%;
+  animation: skeletonShimmer 1.4s infinite linear;
+}
+
+.skel-line.w30 { width: 30%; }
+.skel-line.w40 { width: 40%; }
+.skel-line.w50 { width: 50%; }
+.skel-line.w55 { width: 55%; }
+.skel-line.w65 { width: 65%; }
+.skel-line.w70 { width: 70%; }
+.skel-line.w80 { width: 80%; }
+
+/* Smooth fade-in when history renders */
+@keyframes fadeInChat {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chat-message {
+  animation: fadeInChat 0.2s ease;
+}
+
+[data-theme="light"] .skel-avatar {
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 800px 100%;
+  animation: skeletonShimmer 1.4s infinite linear;
+}
+
+[data-theme="light"] .skel-line {
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 800px 100%;
+  animation: skeletonShimmer 1.4s infinite linear;
+}
+
+[data-theme="light"] .skel-bubble {
+  background: rgba(0,0,0,0.04);
+}
+
+[data-theme="light"] .skel-bubble.skel-bubble-right {
+  background: rgba(0, 122, 255, 0.08);
+}
 

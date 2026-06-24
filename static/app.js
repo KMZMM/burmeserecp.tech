@@ -1081,9 +1081,9 @@ function showContextMenu(e, messageId, isSelf) {
   });
 }
 
-function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}, tempId = '') {
-  if (!chatMessages) return;
-
+// buildMessageElement: builds and returns a chat message DOM element without appending it.
+// Used by both appendChatMessage and renderChatHistory (for batch history rendering).
+function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}, tempId = '') {
   const msgDiv = document.createElement("div");
   if (messageId) {
     msgDiv.setAttribute("data-msg-id", messageId);
@@ -1111,7 +1111,7 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
     } else {
       let avatarContent = '';
       if (avatarUrl) {
-        avatarContent = `<img src="${avatarUrl}" alt="${sender}" class="account-pic" />`;
+        avatarContent = `<img src="${avatarUrl}" alt="${sender}" class="account-pic" loading="lazy" />`;
       } else {
         const initials = getInitials(sender);
         avatarContent = initials;
@@ -1131,7 +1131,6 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
 
     const bubble = msgDiv.querySelector('.msg-bubble');
     if (bubble) {
-      // Render attachments (images, video, documents)
       if (attachment && attachment.url) {
         bubble.classList.add('msg-bubble-has-attachment');
         const attachDiv = document.createElement('div');
@@ -1187,16 +1186,71 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
     }
   }
 
+  return msgDiv;
+}
+
+function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}, tempId = '') {
+  if (!chatMessages) return;
+  const msgDiv = buildMessageElement(sender, text, isSelf, avatarBg, type, avatarUrl, messageId, reactions, attachment, tempId);
   chatMessages.appendChild(msgDiv);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+
+// Track if history has been loaded (to avoid wiping existing messages on reconnect)
+let chatHistoryLoaded = false;
+
+function showChatSkeleton() {
+  if (!chatMessages || chatHistoryLoaded) return;
+  chatMessages.innerHTML = `
+    <div class="chat-date-separator"><span>Today</span></div>
+    <div class="chat-skeleton-wrap">
+      <div class="chat-skeleton-msg received">
+        <div class="skel-avatar"></div>
+        <div class="skel-bubble"><div class="skel-line w70"></div><div class="skel-line w40"></div></div>
+      </div>
+      <div class="chat-skeleton-msg sent">
+        <div class="skel-bubble skel-bubble-right"><div class="skel-line w55"></div><div class="skel-line w30"></div></div>
+      </div>
+      <div class="chat-skeleton-msg received">
+        <div class="skel-avatar"></div>
+        <div class="skel-bubble"><div class="skel-line w80"></div><div class="skel-line w50"></div></div>
+      </div>
+      <div class="chat-skeleton-msg sent">
+        <div class="skel-bubble skel-bubble-right"><div class="skel-line w65"></div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderChatHistory(messages) {
+  if (!chatMessages) return;
+  chatHistoryLoaded = true;
+  chatMessages.innerHTML = '<div class="chat-date-separator"><span>Today</span></div>';
+
+  if (!messages || messages.length === 0) {
+    const empty = document.createElement('div');
+    empty.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--ios-text-secondary);font-size:13px;opacity:0.7;"><div style="font-size:32px;margin-bottom:10px;">&#x1F4AC;</div><div>${currentLang === 'en' ? 'No messages yet. Be the first to say hi!' : 'မက်ဆေ့ချ် မရှိသေးပါ။ ပထမဆုံး ဖြစ်လိုက်ပါ!'}</div></div>`;
+    chatMessages.appendChild(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  messages.forEach(msg => {
+    const isSelf = msg.sender === myUsername;
+    const msgDiv = buildMessageElement(msg.sender, msg.text, isSelf, msg.avatarBg || '', 'message', msg.avatar_url || '', msg.message_id, msg.reactions || {}, msg.attachment || {});
+    if (msgDiv) fragment.appendChild(msgDiv);
+  });
+  chatMessages.appendChild(fragment);
+  requestAnimationFrame(() => { chatMessages.scrollTop = chatMessages.scrollHeight; });
 }
 
 function connectWebSocket() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
 
-  // Clear messages list on connect to avoid duplication of history
-  if (chatMessages) {
-    chatMessages.innerHTML = '<div class="chat-date-separator"><span>Today</span></div>';
+  // Show skeleton only on first load — on reconnect keep existing messages visible
+  if (!chatHistoryLoaded) {
+    showChatSkeleton();
   }
 
   // Check if we are running in local dev (localhost, 127.0.0.1, or file protocol)
@@ -1237,15 +1291,20 @@ function connectWebSocket() {
     try {
       const message = JSON.parse(event.data);
 
-      if (onlineCountEl && message.onlineCount !== undefined && message.totalUsers !== undefined) {
+      // Update ONLINE count only — show live connected users, not total members
+      if (onlineCountEl && message.onlineCount !== undefined) {
+        const count = message.onlineCount;
         if (currentLang === "en") {
-          onlineCountEl.textContent = `${message.totalUsers.toLocaleString()} members, ${message.onlineCount.toLocaleString()} online`;
+          onlineCountEl.textContent = `${count.toLocaleString()} online`;
         } else {
-          onlineCountEl.textContent = `အဖွဲ့ဝင် ${message.totalUsers.toLocaleString()} ဦး၊ ${message.onlineCount.toLocaleString()} ဦး အွန်လိုင်းရှိသည်`;
+          onlineCountEl.textContent = `${count.toLocaleString()} ဦး အွန်လိုင်းရှိသည်`;
         }
       }
 
-      if (message.type === 'system') {
+      if (message.type === 'history') {
+        // Batch render all history at once — Telegram-like smooth load
+        renderChatHistory(message.messages || []);
+      } else if (message.type === 'system') {
         appendChatMessage("System", message.text, false, '', 'system');
       } else if (message.type === 'message') {
         const isSelf = message.sender === myUsername;

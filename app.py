@@ -219,10 +219,6 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
             await websocket.accept()
             await websocket.close(code=4003)
             return
-    else:
-        await websocket.accept()
-        await websocket.close(code=4003)
-        return
         
     await manager.connect(websocket, username)
 

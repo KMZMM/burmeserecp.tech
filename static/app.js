@@ -177,8 +177,13 @@ function setStatus(message, tone = "idle") {
   }
 }
 
-const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const API_BASE_URL = isLocalDev ? "http://localhost:8081" : "";
+const isLocalHost = (hn) => {
+  return hn === "localhost" || hn === "127.0.0.1" || hn === "0.0.0.0" || 
+         hn.startsWith("192.168.") || hn.startsWith("10.") || hn.startsWith("172.") || 
+         hn.endsWith(".local");
+};
+const isLocalDev = isLocalHost(window.location.hostname) || window.location.port === "8080";
+const API_BASE_URL = isLocalDev ? `${window.location.protocol}//${window.location.hostname}:8081` : "";
 
 function getApiUrl(url) {
   if (url.startsWith("/api/")) {

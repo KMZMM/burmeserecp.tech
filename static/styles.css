@@ -605,6 +605,7 @@ body[data-theme="light"] .moon-icon {
   font-size: 13.5px;
   padding: 6px 8px;
   outline: none;
+  min-width: 0;
 }
 
 .chat-input-wrapper input::placeholder {
@@ -615,16 +616,28 @@ body[data-theme="light"] .moon-icon {
 .chat-input-icon {
   background: transparent;
   border: none;
-  font-size: 16px;
   cursor: pointer;
   padding: 4px;
   opacity: 0.7;
   transition: opacity 0.2s, transform 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--ios-text-secondary);
 }
 
 .chat-input-icon:hover {
   opacity: 1;
   transform: scale(1.1);
+}
+
+.attach-menu-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-send-btn {
@@ -3295,7 +3308,8 @@ body[data-theme="light"] .moon-icon {
 .attach-menu {
   position: absolute;
   bottom: 46px;
-  left: 0;
+  right: 0;
+  left: auto;
   background: var(--ios-surface, #1c1c1e);
   border: 0.5px solid var(--ios-border, #3a3a3c);
   border-radius: 14px;

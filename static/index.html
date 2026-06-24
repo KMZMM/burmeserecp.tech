@@ -180,7 +180,17 @@
 
 
         <!-- Action Button: Generate -->
-        <div class="action-container">
+        <div class="action-container" style="position: relative;">
+          <!-- Locked Action Overlay -->
+          <div class="chat-input-lock-overlay" id="ttsLockOverlay" style="display: none; width: 100%; border-radius: 14px; border: 0.5px solid var(--ios-border); box-sizing: border-box;">
+            <svg class="lock-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span class="lock-text" data-translate="lock-tts-text">Sign in to generate speech</span>
+            <button type="button" class="ios-btn primary small-btn" id="lockTtsSignInBtn" data-translate="lock-signin-btn">Sign In / Sign Up</button>
+          </div>
+
           <button class="ios-btn primary large-btn" id="generateButton" type="submit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;">
               <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
@@ -204,9 +214,13 @@
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
           </button>
-          <div class="chat-avatar">💬</div>
+          <div class="chat-avatar" style="display: flex; align-items: center; justify-content: center; background: rgba(var(--ios-accent-rgb), 0.15); border-radius: 50%; width: 34px; height: 34px; color: var(--ios-accent);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 17px; height: 17px;">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
           <div class="chat-meta">
-            <div class="chat-title" data-translate="chat-title">BurmeseRecap Community 🇲🇲</div>
+            <div class="chat-title" data-translate="chat-title">BurmeseRecap Community</div>
             <div class="chat-status">
               <span class="status-dot"></span>
               <span id="onlineCount">1,428 members, 84 online</span>
@@ -244,7 +258,14 @@
         <!-- Chat Input Bar -->
         <div class="chat-input-area" id="chatInputArea">
           <div class="chat-input-wrapper">
-            <button class="chat-input-icon emoji-trigger" type="button" aria-label="Add emoji">😊</button>
+            <button class="chat-input-icon emoji-trigger" type="button" aria-label="Add emoji" style="display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 17px; height: 17px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+              </svg>
+            </button>
             <input type="text" id="chatMessageInput" placeholder="Write a message..." autocomplete="off" disabled />
             <button class="chat-input-icon attach-trigger" type="button" aria-label="Attach file">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="attach-icon-svg" style="width: 17px; height: 17px; display: block;">
@@ -391,58 +412,60 @@
         <button class="modal-close-btn" id="closeAuthModalBtn">&times;</button>
       </div>
       
-      <!-- iOS Segmented Control Tab Switcher -->
-      <div class="ios-segmented-control" style="margin-bottom: 24px;">
-        <button class="control-segment active" id="tabSignInBtn" data-translate="tab-signin">Sign In</button>
-        <button class="control-segment" id="tabSignUpBtn" data-translate="tab-signup">Sign Up</button>
-      </div>
-      
-      <!-- Tab: Sign In (Email only lookup) -->
-      <div class="modal-tab-content active" id="signInTab">
-        <form id="signInForm" class="ios-form">
-          <p class="form-desc" data-translate="signin-desc">Enter your registered email to join the chat.</p>
-          <div class="form-group">
-            <label for="signInEmail" data-translate="label-email">Email Address</label>
-            <input type="email" id="signInEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
-          </div>
-          <div id="signInError" class="auth-error-msg"></div>
-          <button type="submit" class="ios-btn primary large-btn" data-translate="btn-signin">Sign In</button>
-        </form>
-      </div>
-      
-      <!-- Tab: Sign Up -->
-      <div class="modal-tab-content" id="signUpTab">
-        <form id="signUpForm" class="ios-form">
-          <p class="form-desc" data-translate="signup-desc">Create an account to start sharing messages.</p>
-          <div class="form-group">
-            <label for="signUpUsername" data-translate="label-username">Username / Nickname</label>
-            <input type="text" id="signUpUsername" placeholder="e.g. Min Khant" required autocomplete="username" />
-          </div>
-          <div class="form-group">
-            <label for="signUpEmail" data-translate="label-email">Email Address</label>
-            <input type="email" id="signUpEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
-          </div>
-          
-          <div class="form-group">
-            <label data-translate="label-avatar">Choose Avatar Profile</label>
-            <div class="avatar-grid" id="avatarGrid">
-              <!-- Dynamically populated preset avatars plus active states -->
+      <div class="modal-body">
+        <!-- iOS Segmented Control Tab Switcher -->
+        <div class="ios-segmented-control" style="margin-bottom: 20px;">
+          <button class="control-segment active" id="tabSignInBtn" data-translate="tab-signin">Sign In</button>
+          <button class="control-segment" id="tabSignUpBtn" data-translate="tab-signup">Sign Up</button>
+        </div>
+        
+        <!-- Tab: Sign In (Email only lookup) -->
+        <div class="modal-tab-content active" id="signInTab">
+          <form id="signInForm" class="ios-form">
+            <p class="form-desc" data-translate="signin-desc">Enter your registered email to join the chat.</p>
+            <div class="form-group">
+              <label for="signInEmail" data-translate="label-email">Email Address</label>
+              <input type="email" id="signInEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
             </div>
-            <div class="custom-avatar-row">
-              <label for="signUpAvatarCustom" data-translate="label-custom-avatar">Or Custom Avatar URL / Upload</label>
-              <div class="avatar-upload-wrapper" style="display: flex; gap: 8px;">
-                <input type="url" id="signUpAvatarCustom" placeholder="https://images.unsplash.com/... or upload" style="flex: 1;" />
-                <button type="button" class="ios-btn secondary" id="avatarUploadBtn" style="padding: 0 12px; font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                  Upload Image
-                </button>
+            <div id="signInError" class="auth-error-msg"></div>
+            <button type="submit" class="ios-btn primary large-btn" data-translate="btn-signin">Sign In</button>
+          </form>
+        </div>
+        
+        <!-- Tab: Sign Up -->
+        <div class="modal-tab-content" id="signUpTab">
+          <form id="signUpForm" class="ios-form">
+            <p class="form-desc" data-translate="signup-desc">Create an account to start sharing messages.</p>
+            <div class="form-group">
+              <label for="signUpUsername" data-translate="label-username">Username / Nickname</label>
+              <input type="text" id="signUpUsername" placeholder="e.g. Min Khant" required autocomplete="username" />
+            </div>
+            <div class="form-group">
+              <label for="signUpEmail" data-translate="label-email">Email Address</label>
+              <input type="email" id="signUpEmail" placeholder="e.g. name@example.com" required autocomplete="email" />
+            </div>
+            
+            <div class="form-group">
+              <label data-translate="label-avatar">Choose Avatar Profile</label>
+              <div class="avatar-grid" id="avatarGrid">
+                <!-- Dynamically populated preset avatars plus active states -->
               </div>
-              <input type="file" id="signUpAvatarFile" accept="image/*" style="display: none;" />
+              <div class="custom-avatar-row">
+                <label for="signUpAvatarCustom" data-translate="label-custom-avatar">Or Custom Avatar URL / Upload</label>
+                <div class="avatar-upload-wrapper" style="display: flex; gap: 8px;">
+                  <input type="url" id="signUpAvatarCustom" placeholder="https://images.unsplash.com/... or upload" style="flex: 1;" />
+                  <button type="button" class="ios-btn secondary" id="avatarUploadBtn" style="padding: 0 12px; font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+                    Upload Image
+                  </button>
+                </div>
+                <input type="file" id="signUpAvatarFile" accept="image/*" style="display: none;" />
+              </div>
             </div>
-          </div>
-          
-          <div id="signUpError" class="auth-error-msg"></div>
-          <button type="submit" class="ios-btn primary large-btn" data-translate="btn-signup">Create Account</button>
-        </form>
+            
+            <div id="signUpError" class="auth-error-msg"></div>
+            <button type="submit" class="ios-btn primary large-btn" data-translate="btn-signup">Create Account</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>

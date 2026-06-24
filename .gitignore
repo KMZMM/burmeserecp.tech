@@ -4,4 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+users.db
+*.db
+*.sqlite
 

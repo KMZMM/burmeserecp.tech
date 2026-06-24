@@ -2737,6 +2737,52 @@ body[data-theme="light"] .moon-icon {
   padding: 2px 6px 4px;
 }
 
+/* Premium Auth Modal Layout Adjustments */
+.ios-modal .ios-form {
+  gap: 14px !important;
+}
+
+.ios-modal .form-group {
+  gap: 6px !important;
+}
+
+.ios-modal .form-desc {
+  margin-bottom: 6px !important;
+}
+
+.ios-modal .ios-segmented-control {
+  margin: 0 0 20px 0 !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.custom-avatar-row {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.custom-avatar-row label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ios-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+@media (max-width: 480px) {
+  .avatar-upload-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px !important;
+  }
+  .avatar-upload-wrapper button {
+    height: 44px;
+  }
+}
+
 
 
 

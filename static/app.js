@@ -454,8 +454,9 @@ const TRANSLATIONS = {
     "something-wrong": "Something went wrong.",
     "error": "Error",
     "chat-title": "BurmeseRecap Community 🇲🇲",
-    "connecting": "Connecting to community server...",
-    "offline": "Offline. Reconnecting...",
+    "connecting": "Connecting...",
+    "updating": "Updating...",
+    "offline": "Waiting for network...",
     "generating": "Generating...",
     "generating-voice": "Generating voice sample…",
     "generating-player": "Generating…",
@@ -524,8 +525,9 @@ const TRANSLATIONS = {
     "something-wrong": "တစ်စုံတစ်ခု မှားယွင်းနေပါသည်။",
     "error": "အမှား",
     "chat-title": "BurmeseRecap အဖွဲ့အစည်း 🇲🇲",
-    "connecting": "အဖွဲ့အစည်း ဆာဗာသို့ ချိတ်ဆက်နေသည်...",
-    "offline": "ချိတ်ဆက်မှု ပြတ်တောက်နေသည်။ ပြန်လည်ချိတ်ဆက်နေသည်...",
+    "connecting": "ချိတ်ဆက်နေသည်...",
+    "updating": "မွမ်းမံနေသည်...",
+    "offline": "ကွန်ရက် စောင့်ဆိုင်းနေသည်...",
     "generating": "ထုတ်လုပ်နေသည်...",
     "generating-voice": "အသံနမူနာ ထုတ်လုပ်နေသည်…",
     "generating-player": "ထုတ်လုပ်နေသည်…",
@@ -1113,6 +1115,9 @@ function connectWebSocket() {
     if (statusDot) {
       statusDot.style.backgroundColor = "var(--ios-green)";
       statusDot.style.boxShadow = "0 0 4px var(--ios-green)";
+    }
+    if (onlineCountEl) {
+      onlineCountEl.textContent = TRANSLATIONS[currentLang]["updating"];
     }
   };
 

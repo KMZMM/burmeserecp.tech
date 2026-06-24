@@ -12,6 +12,26 @@ services:
     instance_size_slug: apps-s-1vcpu-0.5gb
     http_port: 8080
     run_command: python -m uvicorn app:app --host 0.0.0.0 --port 8080
+    routes:
+      - path: /
+    envs:
+      - key: PYTHONUNBUFFERED
+        scope: RUN_AND_BUILD_TIME
+        value: "1"
+
+  - name: api
+    github:
+      repo: KMZMM/burmeserecp.tech
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    environment_slug: python
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 8081
+    run_command: python -m uvicorn api:app --host 0.0.0.0 --port 8081
+    routes:
+      - path: /api
     envs:
       - key: PYTHONUNBUFFERED
         scope: RUN_AND_BUILD_TIME

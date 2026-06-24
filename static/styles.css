@@ -2416,7 +2416,7 @@ body[data-theme="light"] .moon-icon {
   min-height: 400px;
 }
 
-/* Pricing custom coloration */
+/* Pricing custom coloration (4 tiers: Free, Basic, Premium, Pro) */
 .pricing-card:nth-child(1) {
   border-color: rgba(142, 142, 147, 0.4);
 }
@@ -2429,28 +2429,41 @@ body[data-theme="light"] .moon-icon {
 }
 
 .pricing-card:nth-child(2) {
-  border-color: #ff9500;
-  background-color: rgba(255, 149, 0, 0.04);
-  box-shadow: 0 4px 20px rgba(255, 149, 0, 0.1);
+  border-color: #007aff;
+  background-color: rgba(0, 122, 255, 0.04);
+  box-shadow: 0 4px 20px rgba(0, 122, 255, 0.1);
 }
 .pricing-card:nth-child(2) .plan-badge {
-  background-color: #ff9500 !important;
+  background-color: #007aff !important;
   color: #ffffff !important;
 }
 .pricing-card:nth-child(2) .plan-price {
-  color: #ff9500;
+  color: #007aff;
 }
 
 .pricing-card:nth-child(3) {
+  border-color: #ff9500;
+  background-color: rgba(255, 149, 0, 0.04);
+  box-shadow: 0 4px 20px rgba(255, 149, 0, 0.15);
+}
+.pricing-card:nth-child(3) .plan-badge {
+  background-color: #ff9500 !important;
+  color: #ffffff !important;
+}
+.pricing-card:nth-child(3) .plan-price {
+  color: #ff9500;
+}
+
+.pricing-card:nth-child(4) {
   border-color: #5856d6;
   background-color: rgba(88, 86, 214, 0.04);
   box-shadow: 0 4px 20px rgba(88, 86, 214, 0.1);
 }
-.pricing-card:nth-child(3) .plan-badge {
-  background-color: #5856d6;
-  color: #ffffff;
+.pricing-card:nth-child(4) .plan-badge {
+  background-color: #5856d6 !important;
+  color: #ffffff !important;
 }
-.pricing-card:nth-child(3) .plan-price {
+.pricing-card:nth-child(4) .plan-price {
   color: #5856d6;
 }
 
@@ -2983,11 +2996,12 @@ body[data-theme="light"] .moon-icon {
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  align-items: center;
-  justify-content: center;
+  align-items: center !important;
+  justify-content: center !important;
   z-index: 3000;
   opacity: 0;
   transition: opacity 0.25s ease-out;
+  padding: 0 !important;
 }
 #mediaViewerModal.active {
   display: flex;
@@ -3275,4 +3289,94 @@ body[data-theme="light"] .moon-icon {
 }
 .video-progress-container:hover .video-progress-handle {
   transform: translate(-50%, -50%) scale(1);
+}
+
+/* ========== Telegram-style Split Attach Menu Popup ========== */
+.attach-menu {
+  position: absolute;
+  bottom: 46px;
+  left: 0;
+  background: var(--ios-surface, #1c1c1e);
+  border: 0.5px solid var(--ios-border, #3a3a3c);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 175px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: slideUpAttach 0.18s cubic-bezier(0.1, 0.8, 0.25, 1);
+}
+@keyframes slideUpAttach {
+  from { transform: translateY(12px) scale(0.94); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.attach-menu-item {
+  background: none;
+  border: none;
+  color: var(--ios-text, #ffffff);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  text-align: left;
+  transition: background-color 0.15s;
+  width: 100%;
+}
+.attach-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.attach-menu-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--ios-accent, #007aff);
+}
+
+/* ========== Media Loading Retry Placeholder ========== */
+.media-load-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  background: rgba(255, 59, 48, 0.08);
+  border: 1px dashed rgba(255, 59, 48, 0.3);
+  border-radius: 12px;
+  color: var(--ios-red, #ff3b30);
+  max-width: 260px;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+.media-load-failed svg {
+  width: 28px;
+  height: 28px;
+  color: var(--ios-red, #ff3b30);
+  opacity: 0.95;
+}
+.media-load-failed .error-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+.retry-load-btn {
+  background: var(--ios-red, #ff3b30);
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.retry-load-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
 }

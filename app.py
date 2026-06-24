@@ -179,200 +179,241 @@ async def keepalive_ping():
 @app.on_event("startup")
 async def on_startup():
     asyncio.create_task(keepalive_ping())
-    asyncio.create_task(fetch_and_cache_voices())
+
+JWT_SECRET = os.environ.get("JWT_SECRET", "burmeserecap-super-secret-key-9988")
+
+def decode_jwt(token: str) -> dict | None:
+    try:
+        import base64, json, hmac, hashlib, time
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        header_b64, payload_b64, signature_b64 = parts
+        signature_base = f"{header_b64}.{payload_b64}".encode('utf-8')
+        
+        def base64url_decode(s):
+            p = '=' * (4 - (len(s) % 4))
+            return base64.urlsafe_b64decode(s + p)
+            
+        expected_sig = hmac.new(JWT_SECRET.encode('utf-8'), signature_base, hashlib.sha256).digest()
+        expected_sig_b64 = base64.urlsafe_b64encode(expected_sig).rstrip(b'=').decode('utf-8')
+        
+        if not hmac.compare_digest(signature_b64, expected_sig_b64):
+            return None
+        
+        payload = json.loads(base64url_decode(payload_b64).decode('utf-8'))
+        if payload.get("exp", 0) < time.time():
+            return None
+        return payload
+    except Exception:
+        return None
 
 @app.websocket("/ws/chat")
-async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
-  await manager.connect(websocket, username)
-  
-  # Fetch recent message history from database
-  conn, db_type = get_db_connection()
-  cursor = conn.cursor()
-  db_history = []
-  try:
-      cursor.execute("SELECT id, sender, text, avatar_bg, avatar_url, reactions, attachment FROM messages ORDER BY created_at DESC LIMIT 50")
-      rows = cursor.fetchall()
-      rows.reverse()
-      for r in rows:
-          try:
-              reactions = json.loads(r[5]) if r[5] else {}
-          except Exception:
-              reactions = {}
-          try:
-              attachment = json.loads(r[6]) if r[6] else {}
-          except Exception:
-              attachment = {}
-              
-          db_history.append({
-              "type": "message",
-              "message_id": r[0],
-              "sender": r[1],
-              "text": r[2] or "",
-              "avatarBg": r[3] or "",
-              "avatar_url": r[4] or "",
-              "reactions": reactions,
-              "attachment": attachment
-          })
-  except Exception as e:
-      print("Error loading chat history:", e)
-  finally:
-      conn.close()
-
-  # Send history as a single batched packet for smooth rendering
-  try:
-    await websocket.send_json({
-      "type": "history",
-      "messages": db_history,
-      "onlineCount": manager.get_online_count()
-    })
-  except Exception:
-    manager.disconnect(websocket)
-    return
-
-  # Broadcast updated online count to everyone (including the new connection)
-  await manager.broadcast({
-    "type": "count_update"
-  })
-  try:
-    while True:
-      data_str = await websocket.receive_text()
-      try:
-        data = json.loads(data_str)
-        if not isinstance(data, dict):
-            data = {"text": str(data), "avatarBg": ""}
-      except Exception:
-        data = {"text": data_str, "avatarBg": ""}
-      
-      action = data.get("action")
-      # Ignore client pong responses (keepalive reply to server ping)
-      if action == "pong":
-        continue
-
-      if action == "delete":
-        msg_id = data.get("message_id")
-        conn, db_type = get_db_connection()
-        cursor = conn.cursor()
-        try:
-            if db_type == "postgres":
-                cursor.execute("SELECT sender FROM messages WHERE id = %s", (msg_id,))
-            else:
-                cursor.execute("SELECT sender FROM messages WHERE id = ?", (msg_id,))
-            row = cursor.fetchone()
-            if row and row[0] == username:
-                if db_type == "postgres":
-                    cursor.execute("DELETE FROM messages WHERE id = %s", (msg_id,))
-                else:
-                    cursor.execute("DELETE FROM messages WHERE id = ?", (msg_id,))
-                conn.commit()
-                await manager.broadcast({
-                  "type": "delete",
-                  "message_id": msg_id
-                })
-        except Exception as e:
-            print("Failed to delete message:", e)
-        finally:
-            conn.close()
-        continue
+async def websocket_endpoint(websocket: WebSocket, token: str = None):
+    username = "Anonymous"
+    if token:
+        payload = decode_jwt(token)
+        if payload:
+            username = payload.get("username", "Anonymous")
+        else:
+            await websocket.accept()
+            await websocket.close(code=4003)
+            return
+    else:
+        await websocket.accept()
+        await websocket.close(code=4003)
+        return
         
-      elif action == "react":
-        msg_id = data.get("message_id")
-        emoji = data.get("emoji")
-        if msg_id and emoji:
+    await manager.connect(websocket, username)
+
+    # Fetch recent message history from database
+    conn, db_type = get_db_connection()
+    cursor = conn.cursor()
+    db_history = []
+    try:
+        cursor.execute("SELECT id, sender, text, avatar_bg, avatar_url, reactions, attachment FROM messages ORDER BY created_at DESC LIMIT 50")
+        rows = cursor.fetchall()
+        rows.reverse()
+        for r in rows:
+            try:
+                reactions = json.loads(r[5]) if r[5] else {}
+            except Exception:
+                reactions = {}
+            try:
+                attachment = json.loads(r[6]) if r[6] else {}
+            except Exception:
+                attachment = {}
+
+            db_history.append({
+                "type": "message",
+                "message_id": r[0],
+                "sender": r[1],
+                "text": r[2] or "",
+                "avatarBg": r[3] or "",
+                "avatar_url": r[4] or "",
+                "reactions": reactions,
+                "attachment": attachment
+            })
+    except Exception as e:
+        print("Error loading chat history:", e)
+    finally:
+        conn.close()
+
+    # Send history as a single batched packet for smooth rendering
+    try:
+      await websocket.send_json({
+        "type": "history",
+        "messages": db_history,
+        "onlineCount": manager.get_online_count()
+      })
+    except Exception:
+      manager.disconnect(websocket)
+      return
+
+    # Broadcast updated online count to everyone (including the new connection)
+    await manager.broadcast({
+      "type": "count_update"
+    })
+    try:
+      while True:
+        data_str = await websocket.receive_text()
+        try:
+          data = json.loads(data_str)
+          if not isinstance(data, dict):
+              data = {"text": str(data), "avatarBg": ""}
+        except Exception:
+          data = {"text": data_str, "avatarBg": ""}
+
+        action = data.get("action")
+        # Ignore client pong responses (keepalive reply to server ping)
+        if action == "pong":
+          continue
+
+        if action == "delete":
+          msg_id = data.get("message_id")
           conn, db_type = get_db_connection()
           cursor = conn.cursor()
           try:
               if db_type == "postgres":
-                  cursor.execute("SELECT reactions FROM messages WHERE id = %s", (msg_id,))
+                  cursor.execute("SELECT sender FROM messages WHERE id = %s", (msg_id,))
               else:
-                  cursor.execute("SELECT reactions FROM messages WHERE id = ?", (msg_id,))
+                  cursor.execute("SELECT sender FROM messages WHERE id = ?", (msg_id,))
               row = cursor.fetchone()
-              if row:
-                  reactions = json.loads(row[0]) if row[0] else {}
-                  
-                  # Enforce 1 reaction limit: remove user's name from any other emoji on this message
-                  other_emojis_to_cleanup = []
-                  for k, u_list in reactions.items():
-                    if k != emoji and username in u_list:
-                      u_list.remove(username)
-                      if not u_list:
-                        other_emojis_to_cleanup.append(k)
-                  for k in other_emojis_to_cleanup:
-                    del reactions[k]
-                  
-                  # Toggle the target emoji
-                  user_list = reactions.setdefault(emoji, [])
-                  if username in user_list:
-                    user_list.remove(username)
-                    if not user_list:
-                      del reactions[emoji]
-                  else:
-                    user_list.append(username)
-                  
-                  # Update DB
-                  reactions_str = json.dumps(reactions)
+              if row and row[0] == username:
                   if db_type == "postgres":
-                      cursor.execute("UPDATE messages SET reactions = %s WHERE id = %s", (reactions_str, msg_id))
+                      cursor.execute("DELETE FROM messages WHERE id = %s", (msg_id,))
                   else:
-                      cursor.execute("UPDATE messages SET reactions = ? WHERE id = ?", (reactions_str, msg_id))
+                      cursor.execute("DELETE FROM messages WHERE id = ?", (msg_id,))
                   conn.commit()
-                  
                   await manager.broadcast({
-                    "type": "react_update",
-                    "message_id": msg_id,
-                    "reactions": reactions
+                    "type": "delete",
+                    "message_id": msg_id
                   })
           except Exception as e:
-              print("Failed to react:", e)
+              print("Failed to delete message:", e)
           finally:
               conn.close()
-        continue
+          continue
 
-      # Normal message broadcast
-      msg_id = str(uuid.uuid4())
-      attachment_data = data.get("attachment", {}) if isinstance(data, dict) else {}
-      temp_id = data.get("tempId", "") if isinstance(data, dict) else ""
-      msg_payload = {
-        "type": "message",
-        "message_id": msg_id,
-        "sender": username,
-        "text": data.get("text", "").strip() if isinstance(data, dict) else str(data),
-        "avatarBg": data.get("avatarBg", "") if isinstance(data, dict) else "",
-        "avatar_url": data.get("avatar_url", "") if isinstance(data, dict) else "",
-        "reactions": {},
-        "attachment": attachment_data,
-        "tempId": temp_id
-      }
-      
-      # Save to database
-      conn, db_type = get_db_connection()
-      cursor = conn.cursor()
-      try:
-          reactions_str = json.dumps({})
-          attachment_str = json.dumps(attachment_data)
-          if db_type == "postgres":
-              cursor.execute(
-                  "INSERT INTO messages (id, sender, text, avatar_bg, avatar_url, reactions, attachment) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                  (msg_id, username, msg_payload["text"], msg_payload["avatarBg"], msg_payload["avatar_url"], reactions_str, attachment_str)
-              )
-          else:
-              cursor.execute(
-                  "INSERT INTO messages (id, sender, text, avatar_bg, avatar_url, reactions, attachment) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                  (msg_id, username, msg_payload["text"], msg_payload["avatarBg"], msg_payload["avatar_url"], reactions_str, attachment_str)
-              )
-          conn.commit()
-      except Exception as e:
-          print("Failed to save message:", e)
-      finally:
-          conn.close()
+        elif action == "react":
+          msg_id = data.get("message_id")
+          emoji = data.get("emoji")
+          if msg_id and emoji:
+            conn, db_type = get_db_connection()
+            cursor = conn.cursor()
+            try:
+                if db_type == "postgres":
+                    cursor.execute("SELECT reactions FROM messages WHERE id = %s", (msg_id,))
+                else:
+                    cursor.execute("SELECT reactions FROM messages WHERE id = ?", (msg_id,))
+                row = cursor.fetchone()
+                if row:
+                    reactions = json.loads(row[0]) if row[0] else {}
 
-      await manager.broadcast(msg_payload)
-  except WebSocketDisconnect:
-    manager.disconnect(websocket)
-    await manager.broadcast({
-      "type": "count_update"
-    })
-  except Exception:
-    manager.disconnect(websocket)
+                    # Enforce 1 reaction limit: remove user's name from any other emoji on this message
+                    other_emojis_to_cleanup = []
+                    for k, u_list in reactions.items():
+                      if k != emoji and username in u_list:
+                        u_list.remove(username)
+                        if not u_list:
+                          other_emojis_to_cleanup.append(k)
+                    for k in other_emojis_to_cleanup:
+                      del reactions[k]
+
+                    # Toggle the target emoji
+                    user_list = reactions.setdefault(emoji, [])
+                    if username in user_list:
+                      user_list.remove(username)
+                      if not user_list:
+                        del reactions[emoji]
+                    else:
+                      user_list.append(username)
+
+                    # Update DB
+                    reactions_str = json.dumps(reactions)
+                    if db_type == "postgres":
+                        cursor.execute("UPDATE messages SET reactions = %s WHERE id = %s", (reactions_str, msg_id))
+                    else:
+                        cursor.execute("UPDATE messages SET reactions = ? WHERE id = ?", (reactions_str, msg_id))
+                    conn.commit()
+
+                    await manager.broadcast({
+                      "type": "react_update",
+                      "message_id": msg_id,
+                      "reactions": reactions
+                    })
+            except Exception as e:
+                print("Failed to react:", e)
+            finally:
+                conn.close()
+          continue
+
+        # Normal message broadcast
+        msg_id = str(uuid.uuid4())
+        attachment_data = data.get("attachment", {}) if isinstance(data, dict) else {}
+        temp_id = data.get("tempId", "") if isinstance(data, dict) else ""
+        msg_payload = {
+          "type": "message",
+          "message_id": msg_id,
+          "sender": username,
+          "text": data.get("text", "").strip() if isinstance(data, dict) else str(data),
+          "avatarBg": data.get("avatarBg", "") if isinstance(data, dict) else "",
+          "avatar_url": data.get("avatar_url", "") if isinstance(data, dict) else "",
+          "reactions": {},
+          "attachment": attachment_data,
+          "tempId": temp_id
+        }
+
+        # Save to database
+        conn, db_type = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            reactions_str = json.dumps({})
+            attachment_str = json.dumps(attachment_data)
+            if db_type == "postgres":
+                cursor.execute(
+                    "INSERT INTO messages (id, sender, text, avatar_bg, avatar_url, reactions, attachment) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (msg_id, username, msg_payload["text"], msg_payload["avatarBg"], msg_payload["avatar_url"], reactions_str, attachment_str)
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO messages (id, sender, text, avatar_bg, avatar_url, reactions, attachment) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (msg_id, username, msg_payload["text"], msg_payload["avatarBg"], msg_payload["avatar_url"], reactions_str, attachment_str)
+                )
+            conn.commit()
+        except Exception as e:
+            print("Failed to save message:", e)
+        finally:
+            conn.close()
+
+        await manager.broadcast(msg_payload)
+    except WebSocketDisconnect:
+      manager.disconnect(websocket)
+      await manager.broadcast({
+        "type": "count_update"
+      })
+    except Exception:
+      manager.disconnect(websocket)
 
 # DB_PATH defined globally at the top
 
@@ -386,7 +427,11 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 username VARCHAR(255) NOT NULL,
-                avatar_url TEXT NOT NULL
+                avatar_url TEXT NOT NULL,
+                password_hash VARCHAR(255),
+                plan VARCHAR(50) DEFAULT 'Free',
+                credits_remaining INTEGER DEFAULT 10000,
+                last_credit_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         cursor.execute("""
@@ -401,8 +446,6 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC)")
         conn.commit()
     else:
         cursor.execute("""
@@ -410,7 +453,11 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
                 username TEXT NOT NULL,
-                avatar_url TEXT NOT NULL
+                avatar_url TEXT NOT NULL,
+                password_hash TEXT,
+                plan TEXT DEFAULT 'Free',
+                credits_remaining INTEGER DEFAULT 10000,
+                last_credit_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         cursor.execute("""
@@ -425,11 +472,27 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC)")
         conn.commit()
     
-    # Run database migrations for older deployments to add reactions/attachment columns safely
+    # Migrations for users table
+    columns_to_add = [
+        ("email", "TEXT UNIQUE" if db_type == "sqlite" else "VARCHAR(255) UNIQUE"),
+        ("username", "TEXT" if db_type == "sqlite" else "VARCHAR(255)"),
+        ("avatar_url", "TEXT" if db_type == "sqlite" else "TEXT"),
+        ("password_hash", "TEXT" if db_type == "sqlite" else "VARCHAR(255)"),
+        ("plan", "TEXT DEFAULT 'Free'" if db_type == "sqlite" else "VARCHAR(50) DEFAULT 'Free'"),
+        ("credits_remaining", "INTEGER DEFAULT 10000" if db_type == "sqlite" else "INTEGER DEFAULT 10000"),
+        ("last_credit_reset", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP" if db_type == "sqlite" else "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    ]
+    for col_name, col_type in columns_to_add:
+        try:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+            conn.commit()
+            print(f"Added column {col_name} to users table.")
+        except Exception:
+            if db_type == "postgres":
+                conn.rollback()
+
     if db_type == "postgres":
         for col in ["reactions", "attachment"]:
             try:
@@ -445,175 +508,25 @@ def init_db():
             except Exception:
                 pass
 
-    # Check default mock users for signup screen
-    cursor.execute("SELECT COUNT(*) FROM users")
-    if cursor.fetchone()[0] == 0:
-        presets = [
-            ("aungkyaw.dev@gmail.com", "Aung Kyaw", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80"),
-            ("susandar.story@gmail.com", "Su Sandar", "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80"),
-            ("minkhant.recap@gmail.com", "Min Khant", "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=80&h=80&q=80")
-        ]
+    # Create indexes after columns are migrated
+    try:
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        conn.commit()
+    except Exception:
         if db_type == "postgres":
-            cursor.executemany("INSERT INTO users (email, username, avatar_url) VALUES (%s, %s, %s)", presets)
-        else:
-            cursor.executemany("INSERT INTO users (email, username, avatar_url) VALUES (?, ?, ?)", presets)
-    
-    conn.commit()
+            conn.rollback()
+
+    try:
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC)")
+        conn.commit()
+    except Exception:
+        if db_type == "postgres":
+            conn.rollback()
+
     conn.close()
 
 # Initialize DB on load
 init_db()
-
-@app.get("/api/mock-accounts")
-async def get_mock_accounts():
-    conn, db_type = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT email, username, avatar_url FROM users")
-    rows = cursor.fetchall()
-    accounts = []
-    for row in rows:
-        accounts.append({
-            "email": row[0],
-            "username": row[1],
-            "avatar_url": row[2]
-        })
-    conn.close()
-    return JSONResponse(accounts)
-
-@app.post("/api/signup")
-async def signup(payload: SignupRequest):
-    conn, db_type = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        email_clean = payload.email.strip().lower()
-        user_clean = payload.username.strip()
-        avatar_clean = payload.avatar_url.strip()
-        
-        if db_type == "postgres":
-            cursor.execute(
-                "INSERT INTO users (email, username, avatar_url) VALUES (%s, %s, %s) RETURNING id",
-                (email_clean, user_clean, avatar_clean)
-            )
-            user_id = cursor.fetchone()[0]
-        else:
-            cursor.execute(
-                "INSERT INTO users (email, username, avatar_url) VALUES (?, ?, ?)",
-                (email_clean, user_clean, avatar_clean)
-            )
-            user_id = cursor.lastrowid
-            
-        conn.commit()
-    except Exception as e:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Account with this email already exists.")
-    conn.close()
-    return JSONResponse({
-        "status": "success",
-        "id": user_id,
-        "username": payload.username,
-        "avatar_url": payload.avatar_url,
-        "email": payload.email
-    })
-
-@app.post("/api/login")
-async def login(payload: LoginRequest):
-    conn, db_type = get_db_connection()
-    cursor = conn.cursor()
-    email_clean = payload.email.strip().lower()
-    if db_type == "postgres":
-        cursor.execute("SELECT email, username, avatar_url FROM users WHERE email = %s", (email_clean,))
-    else:
-        cursor.execute("SELECT email, username, avatar_url FROM users WHERE email = ?", (email_clean,))
-    row = cursor.fetchone()
-    conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="Account not found. Please sign up first.")
-    return JSONResponse({
-        "email": row[0],
-        "username": row[1],
-        "avatar_url": row[2]
-    })
-
-@app.post("/api/storage/presign")
-async def generate_presigned_upload_url(payload: PresignRequest):
-    try:
-        # Try environment variables first (production on DO App Platform)
-        access_key = os.environ.get("DO_SPACES_KEY")
-        secret_key = os.environ.get("DO_SPACES_SECRET")
-        bucket_name = os.environ.get("DO_SPACES_BUCKET")
-        region = os.environ.get("DO_SPACES_REGION", "sgp1")
-
-        # Fallback to local credentials JSON file (for local dev)
-        if not access_key or not secret_key or not bucket_name:
-            if os.path.exists(CREDS_PATH):
-                with open(CREDS_PATH, "r") as f:
-                    creds = json.load(f)
-                spaces_config = creds.get("digitalocean_spaces", {})
-                access_key = access_key or spaces_config.get("access_key_id")
-                secret_key = secret_key or spaces_config.get("secret_access_key")
-                bucket_name = bucket_name or spaces_config.get("bucket_name")
-                region = spaces_config.get("region", region)
-
-        if not access_key or not secret_key or not bucket_name:
-            raise HTTPException(status_code=500, detail="Storage not configured. Set DO_SPACES_KEY, DO_SPACES_SECRET, DO_SPACES_BUCKET environment variables.")
-
-        session = boto3.session.Session()
-        s3_client = session.client(
-            's3',
-            region_name=region,
-            endpoint_url=f"https://{region}.digitaloceanspaces.com",
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key
-        )
-
-        file_ext = os.path.splitext(payload.filename)[1].lower()
-        unique_key = f"uploads/{uuid.uuid4().hex}{file_ext}"
-
-        presigned_url = s3_client.generate_presigned_url(
-            ClientMethod='put_object',
-            Params={
-                'Bucket': bucket_name,
-                'Key': unique_key,
-                'ContentType': payload.content_type,
-                'ACL': 'public-read'
-            },
-            ExpiresIn=3600
-        )
-
-        public_url = f"https://{bucket_name}.{region}.digitaloceanspaces.com/{unique_key}"
-
-        return JSONResponse({
-            "upload_url": presigned_url,
-            "download_url": public_url,
-            "filename": payload.filename,
-            "key": unique_key
-        })
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate upload signature: {e}")
-
-# Google OAuth handlers removed
-
-# Static mount moved to the end of file for root-level fallback
-
-
-def format_voice_label(voice: dict[str, Any]) -> str:
-    short_name = voice.get("ShortName", "")
-    parts = short_name.split("-")
-    last = parts[-1] if parts else ""
-    name = last.replace("MultilingualNeural", "").replace("Neural", "")
-    is_multi = "multilingual" in short_name.lower()
-    return f"{name} ({'Multilingual' if is_multi else 'Burmese'})"
-
-
-def sort_key(voice: dict[str, Any]) -> tuple[int, str]:
-    locale = voice.get("Locale", "")
-    priority = 0 if locale.startswith("en-") else 1
-    return priority, locale, voice.get("ShortName", "")
-
-
-# Root index handler replaced by StaticFiles fallback
 
 @app.get("/static/index.html")
 async def redirect_static_index():
@@ -623,82 +536,8 @@ async def redirect_static_index():
 async def redirect_index_html():
     return RedirectResponse(url="/")
 
-
 @app.get("/api/health")
 async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
-
-
-FALLBACK_VOICES = [
-    {"short_name": "my-MM-NilarNeural", "locale": "my-MM", "gender": "Female", "label": "Nilar (Burmese)"},
-    {"short_name": "my-MM-ThihaNeural", "locale": "my-MM", "gender": "Male", "label": "Thiha (Burmese)"},
-    {"short_name": "en-US-AvaMultilingualNeural", "locale": "en-US", "gender": "Female", "label": "Ava (Multilingual)"},
-    {"short_name": "en-US-AndrewMultilingualNeural", "locale": "en-US", "gender": "Male", "label": "Andrew (Multilingual)"},
-    {"short_name": "en-US-EmmaMultilingualNeural", "locale": "en-US", "gender": "Female", "label": "Emma (Multilingual)"},
-    {"short_name": "en-US-BrianMultilingualNeural", "locale": "en-US", "gender": "Male", "label": "Brian (Multilingual)"},
-]
-
-CACHED_VOICES: list[dict[str, Any]] = []
-
-async def fetch_and_cache_voices():
-    global CACHED_VOICES
-    try:
-        # Fetch with 3-second timeout to avoid long hangs
-        voices = await asyncio.wait_for(edge_tts.list_voices(), timeout=3.0)
-        filtered = []
-        for voice in sorted(voices, key=sort_key):
-            locale = voice.get("Locale", "")
-            short_name = voice.get("ShortName", "")
-            is_burmese = locale.startswith("my-")
-            is_multilingual = "multilingual" in short_name.lower()
-            if is_burmese or is_multilingual:
-                filtered.append(
-                    {
-                        "short_name": short_name,
-                        "locale": locale,
-                        "gender": voice.get("Gender", ""),
-                        "label": format_voice_label(voice),
-                    }
-                )
-        if filtered:
-            CACHED_VOICES = filtered
-            print("Successfully cached voices from Edge TTS API.")
-    except Exception as e:
-        print(f"Failed to fetch voices from API: {e}. Using fallback voices.")
-        if not CACHED_VOICES:
-            CACHED_VOICES = FALLBACK_VOICES
-
-
-
-@app.get("/api/voices")
-async def get_voices() -> JSONResponse:
-    global CACHED_VOICES
-    if not CACHED_VOICES:
-        CACHED_VOICES = FALLBACK_VOICES
-    return JSONResponse(CACHED_VOICES)
-
-
-@app.post("/api/tts")
-async def text_to_speech(payload: TTSRequest) -> StreamingResponse:
-    rate = f"{payload.rate:+d}%"
-    pitch = f"{payload.pitch:+d}Hz"
-
-    try:
-        communicate = edge_tts.Communicate(
-            text=payload.text.strip(),
-            voice=payload.voice,
-            rate=rate,
-            pitch=pitch,
-        )
-        audio_buffer = BytesIO()
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_buffer.write(chunk["data"])
-    except Exception as exc:  # pragma: no cover - network dependent
-        raise HTTPException(status_code=502, detail=f"TTS generation failed: {exc}") from exc
-
-    audio_buffer.seek(0)
-    headers = {"Content-Disposition": 'inline; filename="burmeserecp-tts.mp3"'}
-    return StreamingResponse(audio_buffer, media_type="audio/mpeg", headers=headers)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

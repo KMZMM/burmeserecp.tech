@@ -177,6 +177,24 @@ function setStatus(message, tone = "idle") {
   }
 }
 
+async function authFetch(url, options = {}) {
+  const token = safeStorage.getItem("jwt_token");
+  options.headers = options.headers || {};
+  if (token) {
+    options.headers["Authorization"] = `Bearer ${token}`;
+  }
+  const response = await fetch(url, options);
+  if (response.status === 401) {
+    safeStorage.removeItem("jwt_token");
+    safeStorage.setItem("tg_signed_in", "false");
+    showToast("Session expired. Please log in again.");
+    openAuthModal();
+    initUserSession();
+    throw new Error("Session expired.");
+  }
+  return response;
+}
+
 function showToast(message, duration = 3000) {
   let toast = document.getElementById("iosToast");
   if (!toast) {
@@ -310,7 +328,8 @@ async function loadVoices() {
   if (!voiceSelect) return;
   voiceSelect.innerHTML = `<option>${currentLang === 'en' ? 'Loading voices...' : 'အသံများ တင်နေသည်...'}</option>`;
   try {
-    const response = await fetch("/api/voices");
+    const token = safeStorage.getItem("jwt_token") || "";
+    const response = await fetch(`/api/voices?user_token=${encodeURIComponent(token)}`);
     if (!response.ok) throw new Error("Could not load voices.");
     const voices = await response.json();
 
@@ -318,8 +337,9 @@ async function loadVoices() {
     for (const voice of voices) {
       const option = document.createElement("option");
       option.value = voice.short_name;
-      option.textContent = voice.label;
+      option.textContent = (voice.locked ? "🔒 " : "") + voice.label;
       option.dataset.locale = voice.locale;
+      option.dataset.locked = voice.locked ? "true" : "false";
       voiceSelect.appendChild(option);
     }
 
@@ -401,7 +421,7 @@ if (form) {
         pitch: Number(pitchInput.value),
       };
 
-      const response = await fetch("/api/tts", {
+      const response = await authFetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -707,13 +727,56 @@ let myUsername = "";
 let myAvatarUrl = "";
 let myEmail = "";
 
+function updateCreditsDisplay() {
+  const badge = document.getElementById("userCreditsBadge");
+  if (!badge) return;
+  if (isUserSignedIn) {
+    const plan = safeStorage.getItem("user_plan") || "Free";
+    const credits = safeStorage.getItem("user_credits") || "0";
+    badge.textContent = `${plan}: ${Number(credits).toLocaleString()} chars`;
+    badge.style.display = "inline-flex";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+function updatePricingPlansModalState(currentPlan) {
+  document.querySelectorAll(".plan-btn").forEach(btn => {
+    const plan = btn.getAttribute("data-plan");
+    if (plan === currentPlan) {
+      btn.textContent = currentLang === "en" ? "Active Plan" : "လက်ရှိ အသုံးပြုနေသည်";
+      btn.disabled = true;
+      btn.className = "ios-btn secondary plan-btn";
+    } else {
+      btn.textContent = currentLang === "en" ? "Select Plan" : "ရွေးချယ်မည်";
+      btn.disabled = false;
+      if (plan === "Premium") {
+        btn.className = "ios-btn primary plan-btn";
+      } else {
+        btn.className = "ios-btn secondary plan-btn";
+      }
+    }
+  });
+}
+
 function initUserSession() {
   isUserSignedIn = safeStorage.getItem("tg_signed_in") === "true";
-  
+
   if (isUserSignedIn) {
     myUsername = safeStorage.getItem("tg_username");
     myAvatarUrl = safeStorage.getItem("tg_avatar_url") || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80";
     myEmail = safeStorage.getItem("tg_email");
+    
+    updateCreditsDisplay();
+    authFetch("/api/profile")
+      .then(res => res.json())
+      .then(profile => {
+        safeStorage.setItem("user_plan", profile.plan);
+        safeStorage.setItem("user_credits", profile.credits_remaining);
+        updateCreditsDisplay();
+        updatePricingPlansModalState(profile.plan);
+      })
+      .catch(err => console.error("Failed to sync profile:", err));
     
     // Unlock Chat Input
     if (chatInputLockOverlay) chatInputLockOverlay.style.display = "none";
@@ -1191,37 +1254,130 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
 
         if (attachment.content_type && attachment.content_type.startsWith("image/")) {
           attachDiv.className = "msg-bubble-media";
-          attachDiv.innerHTML = `<img src="${attachment.url}" alt="${attachment.filename || 'Image'}" loading="lazy" />`;
-          attachDiv.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openMediaViewer(attachment.url, 'image');
-          });
+          
+          const renderImage = (url) => {
+            attachDiv.innerHTML = "";
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = attachment.filename || 'Image';
+            img.loading = "lazy";
+            img.addEventListener("error", () => {
+              attachDiv.innerHTML = `
+                <div class="media-load-failed">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  <span class="error-text">Failed to load photo</span>
+                  <button class="retry-load-btn" type="button">Tap to Retry</button>
+                </div>
+              `;
+              const retryBtn = attachDiv.querySelector(".retry-load-btn");
+              if (retryBtn) {
+                retryBtn.addEventListener("click", (ev) => {
+                  ev.stopPropagation();
+                  const buster = attachment.url + (attachment.url.includes("?") ? "&" : "?") + "t=" + Date.now();
+                  renderImage(buster);
+                });
+              }
+            });
+            img.addEventListener("click", (e) => {
+              e.stopPropagation();
+              openMediaViewer(url, 'image');
+            });
+            attachDiv.appendChild(img);
+          };
+          renderImage(attachment.url);
+
         } else if (attachment.content_type && attachment.content_type.startsWith("video/")) {
           attachDiv.className = "msg-video-player";
-          attachDiv.innerHTML = `<video src="${attachment.url}" autoplay muted loop playsinline preload="metadata" style="pointer-events: none; width: 100%; display: block;"></video>
-            <div class="inline-video-overlay-play">
-              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg>
-            </div>`;
+          
+          const renderVideo = (url) => {
+            attachDiv.innerHTML = "";
+            const video = document.createElement("video");
+            video.src = url;
+            video.autoplay = true;
+            video.muted = true;
+            video.loop = true;
+            video.playsInline = true;
+            video.preload = "metadata";
+            video.style.pointerEvents = "none";
+            video.style.width = "100%";
+            video.style.display = "block";
+            
+            video.addEventListener("error", () => {
+              attachDiv.innerHTML = `
+                <div class="media-load-failed">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  <span class="error-text">Failed to load video</span>
+                  <button class="retry-load-btn" type="button">Tap to Retry</button>
+                </div>
+              `;
+              const retryBtn = attachDiv.querySelector(".retry-load-btn");
+              if (retryBtn) {
+                retryBtn.addEventListener("click", (ev) => {
+                  ev.stopPropagation();
+                  const buster = attachment.url + (attachment.url.includes("?") ? "&" : "?") + "t=" + Date.now();
+                  renderVideo(buster);
+                });
+              }
+            });
+            
+            attachDiv.appendChild(video);
+            
+            const overlay = document.createElement("div");
+            overlay.className = "inline-video-overlay-play";
+            overlay.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg>`;
+            attachDiv.appendChild(overlay);
+          };
+          
+          renderVideo(attachment.url);
           attachDiv.addEventListener('click', (e) => {
             e.stopPropagation();
-            openMediaViewer(attachment.url, 'video');
+            const currentVideo = attachDiv.querySelector("video");
+            const playUrl = currentVideo ? currentVideo.src : attachment.url;
+            openMediaViewer(playUrl, 'video');
           });
         } else if (attachment.content_type && attachment.content_type.startsWith("audio/")) {
-          // Play inside bottom mini player using the pre-existing audio studio UI
           attachDiv.className = "msg-audio-card";
           const sizeMB = attachment.size ? (attachment.size / 1024 / 1024).toFixed(1) + " MB" : "Audio";
-          attachDiv.innerHTML = `
-            <div class="audio-play-icon">
-              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            </div>
-            <div class="audio-info">
-              <div class="audio-name">${attachment.filename || 'Audio Attachment'}</div>
-              <div class="audio-duration-size">${sizeMB} • Audio</div>
-            </div>
+          
+          const audio = document.createElement("audio");
+          audio.src = attachment.url;
+          audio.preload = "none";
+          attachDiv.appendChild(audio);
+
+          const playBtn = document.createElement("div");
+          playBtn.className = "audio-play-icon";
+          playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+          attachDiv.appendChild(playBtn);
+
+          const infoDiv = document.createElement("div");
+          infoDiv.className = "audio-info";
+          infoDiv.innerHTML = `
+            <div class="audio-name">${attachment.filename || 'Audio Attachment'}</div>
+            <div class="audio-duration-size">${sizeMB} • Audio</div>
           `;
+          attachDiv.appendChild(infoDiv);
+
           attachDiv.addEventListener('click', (e) => {
             e.stopPropagation();
-            playAudioInMiniPlayer(attachment.url, attachment.filename || 'Audio Attachment', sender);
+            document.querySelectorAll("audio, video").forEach(el => {
+              if (el !== audio) el.pause();
+            });
+
+            if (audio.paused) {
+              audio.play().then(() => {
+                playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+              }).catch(err => console.error("Audio play failed:", err));
+            } else {
+              audio.pause();
+              playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+            }
+          });
+
+          audio.addEventListener('ended', () => {
+            playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+          });
+          audio.addEventListener('pause', () => {
+            playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
           });
         } else {
           attachDiv.style.display = "contents";
@@ -1369,7 +1525,8 @@ function connectWebSocket() {
     }
     wsUsername = guestId;
   }
-  const wsUrl = `${wsProtocol}//${wsHost}/ws/chat?username=${encodeURIComponent(wsUsername)}`;
+  const token = safeStorage.getItem("jwt_token") || "";
+  const wsUrl = `${wsProtocol}//${wsHost}/ws/chat?token=${encodeURIComponent(token)}`;
 
   console.log(`Connecting to WebSocket as ${wsUsername}: ${wsUrl}`);
   
@@ -1563,7 +1720,7 @@ const avatarGrid = document.getElementById("avatarGrid");
 const signInEmail = document.getElementById("signInEmail");
 const signUpUsername = document.getElementById("signUpUsername");
 const signUpEmail = document.getElementById("signUpEmail");
-const signUpAvatarCustom = document.getElementById("signUpAvatarCustom");
+
 
 const signInError = document.getElementById("signInError");
 const signUpError = document.getElementById("signUpError");
@@ -1635,10 +1792,10 @@ if (avatarUploadBtn && signUpAvatarFile) {
 
     const originalText = avatarUploadBtn.innerHTML;
     avatarUploadBtn.disabled = true;
-    avatarUploadBtn.innerHTML = "⏳ Uploading...";
+    avatarUploadBtn.innerHTML = "⏳ Uploading (0%)...";
 
     try {
-      const response = await fetch("/api/storage/presign", {
+      const response = await authFetch("/api/storage/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name, content_type: file.type })
@@ -1652,10 +1809,16 @@ if (avatarUploadBtn && signUpAvatarFile) {
       xhr.setRequestHeader("Content-Type", file.type);
       xhr.setRequestHeader("x-amz-acl", "public-read");
 
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          avatarUploadBtn.innerHTML = `⏳ Uploading (${percent}%)...`;
+        }
+      };
+
       xhr.onload = () => {
         if (xhr.status === 200 || xhr.status === 201) {
           const downloadUrl = data.download_url;
-          signUpAvatarCustom.value = downloadUrl;
           selectedAvatarUrl = downloadUrl;
 
           const opt = document.createElement("div");
@@ -1671,7 +1834,6 @@ if (avatarUploadBtn && signUpAvatarFile) {
             avatarGrid.querySelectorAll(".avatar-option").forEach(o => o.classList.remove("active"));
             opt.classList.add("active");
             selectedAvatarUrl = downloadUrl;
-            signUpAvatarCustom.value = downloadUrl;
           });
 
           showToast("Avatar uploaded successfully!");
@@ -1717,6 +1879,56 @@ if (premiumBtn) {
 if (closePlansModalBtn) {
   closePlansModalBtn.addEventListener("click", closePlansModal);
 }
+
+// Pricing plan subscription handler
+document.querySelectorAll(".plan-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const plan = btn.getAttribute("data-plan");
+    if (!isUserSignedIn) {
+      openAuthModal();
+      closePlansModal();
+      return;
+    }
+    if (plan === "Free") {
+      showToast("Free Plan is active by default.");
+      return;
+    }
+    
+    showProgressModal(
+      currentLang === 'en' ? "Upgrading Plan" : "အစီအစဉ် မြှင့်တင်နေသည်",
+      currentLang === 'en' ? `Subscribing to ${plan} Plan...` : `${plan} အစီအစဉ်သို့ ပြောင်းလဲနေပါသည်...`
+    );
+    
+    authFetch("/api/plans/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: plan })
+    })
+    .then(async (res) => {
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Upgrade subscription failed.");
+      }
+      return res.json();
+    })
+    .then((data) => {
+      hideProgressModal();
+      safeStorage.setItem("user_plan", data.plan);
+      safeStorage.setItem("user_credits", data.credits_remaining);
+      
+      updateCreditsDisplay();
+      updatePricingPlansModalState(data.plan);
+      loadVoices(); // reload voices to unlock premium
+      closePlansModal();
+      
+      showToast(currentLang === 'en' ? `Successfully subscribed to ${plan} Plan!` : `${plan} အစီအစဉ်သို့ အောင်မြင်စွာ ပြောင်းလဲပြီးပါပြီ!`);
+    })
+    .catch((err) => {
+      hideProgressModal();
+      showToast("Subscription error: " + err.message);
+    });
+  });
+});
 if (plansModal) {
   plansModal.addEventListener("click", (e) => {
     if (e.target === plansModal) {
@@ -1752,34 +1964,38 @@ if (signInForm) {
   signInForm.addEventListener("submit", (e) => {
     e.preventDefault();
     signInError.textContent = "";
-    
-    const emailVal = signInEmail.value.trim();
-    if (!emailVal) return;
 
-    showProgressModal(currentLang === 'en' ? "Signing In" : "ဝင်ရောက်နေသည်", currentLang === 'en' ? "Verifying your account..." : "အကောင့်ကို စစ်ဆေးနေပါသည်...");
+    const emailVal = signInEmail.value.trim();
+    const passwordVal = document.getElementById("signInPassword").value;
+    if (!emailVal || !passwordVal) return;
+
+    showProgressModal(currentLang === 'en' ? "Signing In" : "ဝင်ရောက်နေသည်", currentLang === 'en' ? "Verifying credentials..." : "စစ်ဆေးနေပါသည်...");
 
     fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailVal })
+      body: JSON.stringify({ email: emailVal, password: passwordVal })
     })
     .then(async (res) => {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Account not found.");
+        throw new Error(errorData.detail || "Authentication failed.");
       }
       return res.json();
     })
-    .then((profile) => {
+    .then((data) => {
       hideProgressModal();
       safeStorage.setItem("tg_signed_in", "true");
-      safeStorage.setItem("tg_username", profile.username);
-      safeStorage.setItem("tg_avatar_url", profile.avatar_url);
-      safeStorage.setItem("tg_email", profile.email);
-      
+      safeStorage.setItem("jwt_token", data.token);
+      safeStorage.setItem("tg_username", data.profile.username);
+      safeStorage.setItem("tg_avatar_url", data.profile.avatar_url);
+      safeStorage.setItem("tg_email", data.profile.email);
+      safeStorage.setItem("user_plan", data.profile.plan || "Free");
+      safeStorage.setItem("user_credits", data.profile.credits_remaining || 0);
+
       initUserSession();
       closeAuthModal();
-      
+
       if (socket) socket.close(); // trigger reconnect
     })
     .catch((err) => {
@@ -1797,12 +2013,9 @@ if (signUpForm) {
 
     const userVal = signUpUsername.value.trim();
     const emailVal = signUpEmail.value.trim();
-    let avatarUrlVal = signUpAvatarCustom.value.trim();
-
-    if (!userVal || !emailVal) return;
-    if (!avatarUrlVal) {
-      avatarUrlVal = selectedAvatarUrl;
-    }
+    const passwordVal = document.getElementById("signUpPassword").value;
+    
+    if (!userVal || !emailVal || !passwordVal) return;
 
     // Show progress to prevent double-clicks
     showProgressModal(
@@ -1816,7 +2029,8 @@ if (signUpForm) {
       body: JSON.stringify({
         username: userVal,
         email: emailVal,
-        avatar_url: avatarUrlVal
+        password: passwordVal,
+        avatar_url: selectedAvatarUrl
       })
     })
     .then(async (res) => {
@@ -1826,16 +2040,19 @@ if (signUpForm) {
       }
       return res.json();
     })
-    .then((profile) => {
+    .then((data) => {
       hideProgressModal();
       safeStorage.setItem("tg_signed_in", "true");
-      safeStorage.setItem("tg_username", profile.username);
-      safeStorage.setItem("tg_avatar_url", profile.avatar_url);
-      safeStorage.setItem("tg_email", profile.email);
-      
+      safeStorage.setItem("jwt_token", data.token);
+      safeStorage.setItem("tg_username", data.profile.username);
+      safeStorage.setItem("tg_avatar_url", data.profile.avatar_url);
+      safeStorage.setItem("tg_email", data.profile.email);
+      safeStorage.setItem("user_plan", data.profile.plan || "Free");
+      safeStorage.setItem("user_credits", data.profile.credits_remaining || 0);
+
       initUserSession();
       closeAuthModal();
-      
+
       if (socket) socket.close(); // trigger reconnect
     })
     .catch((err) => {
@@ -2046,7 +2263,7 @@ function uploadChatAttachment(file, dims = null) {
 
   const progressTextEl = msgDiv.querySelector(".progress-text");
 
-  fetch("/api/storage/presign", {
+  authFetch("/api/storage/presign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename: file.name, content_type: file.type })
@@ -2147,139 +2364,73 @@ if (emojiTrigger && emojiPicker) {
   emojiTrigger.innerHTML = getEmojiHTML("😊", 20);
   
   const attachTrigger = document.querySelector(".attach-trigger");
-  const chatFileInput = document.getElementById("chatFileInput");
+  const chatAttachBtn = document.getElementById("chatAttachBtn");
+const attachMenu = document.getElementById("attachMenu");
+const attachMediaBtn = document.getElementById("attachMediaBtn");
+const attachFileBtn = document.getElementById("attachFileBtn");
+const chatMediaInput = document.getElementById("chatMediaInput");
+const chatDocumentInput = document.getElementById("chatDocumentInput");
 
-  if (attachTrigger && chatFileInput) {
-    attachTrigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (!isUserSignedIn) {
-        openAuthModal();
-        return;
-      }
-      chatFileInput.click();
-    });
+if (chatAttachBtn && attachMenu) {
+  chatAttachBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!isUserSignedIn) {
+      openAuthModal();
+      return;
+    }
+    const isHidden = attachMenu.style.display === "none";
+    attachMenu.style.display = isHidden ? "flex" : "none";
+  });
 
-    chatFileInput.addEventListener("change", async () => {
-      const files = chatFileInput.files;
-      if (files && files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          let dims = null;
-          try {
-            if (file.type.startsWith("image/")) {
-              dims = await getImageDimensions(file);
-            } else if (file.type.startsWith("video/")) {
-              dims = await getVideoDimensions(file);
-            }
-          } catch (e) {
-            console.error("Failed to parse file dimensions:", e);
-          }
-          uploadChatAttachment(file, dims);
-        }
-      }
-      chatFileInput.value = "";
-    });
-  }
-
-  emojiTrigger.addEventListener("click", (e) => {
-  e.stopPropagation();
-  populateEmojiPicker();
-  const isHidden = emojiPicker.style.display !== "flex";
-  emojiPicker.style.display = isHidden ? "flex" : "none";
-});
-  
-  // Close picker when clicking outside
   document.addEventListener("click", (e) => {
-    if (!emojiPicker.contains(e.target) && !e.target.closest(".emoji-trigger")) {
-      emojiPicker.style.display = "none";
+    if (!attachMenu.contains(e.target) && e.target !== chatAttachBtn) {
+      attachMenu.style.display = "none";
     }
   });
-}
 
-// Global click and scroll listeners to close context menu
-document.addEventListener('click', () => {
-  const existingMenu = document.querySelector('.tg-context-menu');
-  if (existingMenu) {
-    existingMenu.remove();
+  if (attachMediaBtn && chatMediaInput) {
+    attachMediaBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      attachMenu.style.display = "none";
+      chatMediaInput.click();
+    });
   }
-});
 
-if (chatMessages) {
-  chatMessages.addEventListener('scroll', () => {
-    const existingMenu = document.querySelector('.tg-context-menu');
-    if (existingMenu) {
-      existingMenu.remove();
+  if (attachFileBtn && chatDocumentInput) {
+    attachFileBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      attachMenu.style.display = "none";
+      chatDocumentInput.click();
+    });
+  }
+
+  const handleFileChange = async (inputElement) => {
+    const files = inputElement.files;
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        let dims = null;
+        try {
+          if (file.type.startsWith("image/")) {
+            dims = await getImageDimensions(file);
+          } else if (file.type.startsWith("video/")) {
+            dims = await getVideoDimensions(file);
+          }
+        } catch (e) {
+          console.error("Failed to parse file dimensions:", e);
+        }
+        uploadChatAttachment(file, dims);
+      }
     }
-  });
-}
+    inputElement.value = "";
+  };
 
-// ===== Translation switcher button listeners =====
-const langEnBtn = document.getElementById("langEnBtn");
-const langMmBtn = document.getElementById("langMmBtn");
-if (langEnBtn && langMmBtn) {
-  langEnBtn.addEventListener("click", () => updateLanguage("en"));
-  langMmBtn.addEventListener("click", () => updateLanguage("my"));
-}
-
-// ===== Dashboard Portal Logic =====
-function showTtsPage() {
-  document.body.classList.remove("chat-only-view");
-  if (portalContainer) portalContainer.style.display = "none";
-  if (appLayoutWrapper) {
-    appLayoutWrapper.style.display = ""; 
-    appLayoutWrapper.classList.add("show-tts-only");
-    appLayoutWrapper.classList.remove("show-chat-only");
+  if (chatMediaInput) {
+    chatMediaInput.addEventListener("change", () => handleFileChange(chatMediaInput));
   }
-  if (appContainer) appContainer.style.display = "block";
-  if (chatCard) chatCard.style.display = "none";
-}
-
-function showChatPage() {
-  document.body.classList.add("chat-only-view");
-  if (portalContainer) portalContainer.style.display = "none";
-  if (appLayoutWrapper) {
-    appLayoutWrapper.style.display = ""; 
-    appLayoutWrapper.classList.remove("show-tts-only");
-    appLayoutWrapper.classList.add("show-chat-only");
+  if (chatDocumentInput) {
+    chatDocumentInput.addEventListener("change", () => handleFileChange(chatDocumentInput));
   }
-  if (appContainer) appContainer.style.display = "none";
-  if (chatCard) chatCard.style.display = "flex";
-  if (chatMessages) {
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
-}
-
-function showPortalPage() {
-  document.body.classList.remove("chat-only-view");
-  if (portalContainer) portalContainer.style.display = "flex";
-  if (appLayoutWrapper) {
-    appLayoutWrapper.style.display = "none";
-    appLayoutWrapper.classList.remove("show-tts-only", "show-chat-only");
-  }
-}
-
-if (goTtsBtn) goTtsBtn.addEventListener("click", showTtsPage);
-if (goChatBtn) goChatBtn.addEventListener("click", showChatPage);
-
-// ===== Init =====
-updateCount();
-updateSliders();
-setDownloadState(false);
-loadVoices();
-updateLanguage(currentLang);
-connectWebSocket();
-renderPresetAvatars();
-
-// Show plans modal automatically on first visit
-const hasSeenPlans = safeStorage.getItem("has_seen_plans_v2");
-if (!hasSeenPlans) {
-  openPlansModal();
-  safeStorage.setItem("has_seen_plans_v2", "true");
-}
-
-// Scroll to bottom of chat on page load
-if (chatMessages) {
-  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // ===== Premium Centered Media Viewer Controls =====

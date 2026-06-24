@@ -196,6 +196,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
       data_str = await websocket.receive_text()
       try:
         data = json.loads(data_str)
+        if not isinstance(data, dict):
+            data = {"text": str(data), "avatarBg": ""}
       except Exception:
         data = {"text": data_str, "avatarBg": ""}
       
@@ -281,16 +283,18 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
 
       # Normal message broadcast
       msg_id = str(uuid.uuid4())
-      attachment_data = data.get("attachment", {})
+      attachment_data = data.get("attachment", {}) if isinstance(data, dict) else {}
+      temp_id = data.get("tempId", "") if isinstance(data, dict) else ""
       msg_payload = {
         "type": "message",
         "message_id": msg_id,
         "sender": username,
-        "text": data.get("text", "").strip(),
-        "avatarBg": data.get("avatarBg", ""),
-        "avatar_url": data.get("avatar_url", ""),
+        "text": data.get("text", "").strip() if isinstance(data, dict) else str(data),
+        "avatarBg": data.get("avatarBg", "") if isinstance(data, dict) else "",
+        "avatar_url": data.get("avatar_url", "") if isinstance(data, dict) else "",
         "reactions": {},
-        "attachment": attachment_data
+        "attachment": attachment_data,
+        "tempId": temp_id
       }
       
       # Save to database
@@ -373,6 +377,22 @@ def init_db():
             )
         """)
     
+    # Run database migrations for older deployments to add reactions/attachment columns safely
+    if db_type == "postgres":
+        for col in ["reactions", "attachment"]:
+            try:
+                cursor.execute(f"ALTER TABLE messages ADD COLUMN {col} TEXT")
+                conn.commit()
+            except Exception:
+                conn.rollback()
+    else:
+        for col in ["reactions", "attachment"]:
+            try:
+                cursor.execute(f"ALTER TABLE messages ADD COLUMN {col} TEXT DEFAULT '{{}}'")
+                conn.commit()
+            except Exception:
+                pass
+
     # Check default mock users for signup screen
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:

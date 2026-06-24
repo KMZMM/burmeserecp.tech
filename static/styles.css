@@ -3394,3 +3394,201 @@ body[data-theme="light"] .moon-icon {
   opacity: 0.9;
   transform: scale(1.02);
 }
+
+/* ========== Hide Bottom Bar Now Playing Bar ========== */
+.now-playing-bar {
+  display: none !important;
+}
+
+/* ========== Force Centering on Mobile Media Viewer ========== */
+@media (max-width: 480px) {
+  #mediaViewerModal {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+}
+
+/* ========== Premium Inline TTS Generated Audio Player ========== */
+.generated-audio-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ios-surface, #1c1c1e);
+  border: 0.5px solid var(--ios-border, #3a3a3c);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  margin-top: 15px;
+}
+.generated-audio-card .audio-play-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ios-accent, #007aff);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.generated-audio-card .audio-play-icon:hover {
+  transform: scale(1.08);
+}
+.generated-audio-card .audio-play-icon:active {
+  transform: scale(0.95);
+}
+.generated-audio-card .audio-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.generated-audio-card .audio-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ios-text, #ffffff);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.generated-audio-card .audio-duration-size {
+  font-size: 11px;
+  color: var(--ios-text-secondary, rgba(255,255,255,0.6));
+}
+.generated-audio-card .audio-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.generated-audio-card .audio-actions button {
+  font-weight: 600;
+}
+.generated-audio-card .audio-progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background: var(--ios-border, #3a3a3c);
+  border-radius: 2px;
+  position: relative;
+  margin-top: 4px;
+  cursor: pointer;
+}
+.generated-audio-card .audio-progress-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: var(--ios-accent, #007aff);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* ========== Circular S3/Download Progress ring animation ========== */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ========== Chat Audio Card Progress Seekbar ========== */
+.msg-audio-card .audio-progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  margin-top: 4px;
+  cursor: pointer;
+  position: relative;
+}
+[data-theme="light"] .msg-audio-card .audio-progress-bar-container {
+  background: rgba(0, 0, 0, 0.1);
+}
+.msg-audio-card .audio-progress-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: var(--ios-accent, #007aff);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* ========== TTS Audio Card Skeleton Shimmer ========== */
+.generated-audio-card-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ios-surface, #1c1c1e);
+  border: 0.5px solid var(--ios-border, #3a3a3c);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  margin-top: 15px;
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="light"] .generated-audio-card-skeleton {
+  background: #ffffff;
+  border-color: #e5e5ea;
+}
+.generated-audio-card-skeleton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.5s infinite linear;
+}
+[data-theme="light"] .generated-audio-card-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.03) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.skeleton-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ios-border, #3a3a3c);
+  flex-shrink: 0;
+}
+[data-theme="light"] .skeleton-play-btn {
+  background: #e5e5ea;
+}
+.skeleton-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeleton-line-title {
+  width: 60%;
+  height: 12px;
+  background: var(--ios-border, #3a3a3c);
+  border-radius: 6px;
+}
+[data-theme="light"] .skeleton-line-title {
+  background: #e5e5ea;
+}
+.skeleton-line-detail {
+  width: 85%;
+  height: 6px;
+  background: var(--ios-border, #3a3a3c);
+  border-radius: 3px;
+}
+[data-theme="light"] .skeleton-line-detail {
+  background: #e5e5ea;
+}

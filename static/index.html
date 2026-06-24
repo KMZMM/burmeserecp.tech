@@ -196,6 +196,9 @@
           </button>
         </div>
 
+        <!-- Generated Audio Player Area (Telegram Style) -->
+        <div class="generated-audio-container" id="generatedAudioContainer" style="display: none;"></div>
+
       </form>
     </main>
 
@@ -281,8 +284,8 @@
               </div>
             </div>
             
-            <input type="file" id="chatMediaInput" accept="image/*,video/*" multiple style="display: none;" />
-            <input type="file" id="chatDocumentInput" accept="*/*" multiple style="display: none;" />
+             <input type="file" id="chatMediaInput" accept="image/*,video/*" multiple style="position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; z-index: -1;" />
+             <input type="file" id="chatDocumentInput" accept="*/*" multiple style="position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; z-index: -1;" />
           </div>
           <button class="chat-send-btn" id="chatSendButton" aria-label="Send message" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

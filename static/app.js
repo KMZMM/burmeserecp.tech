@@ -155,6 +155,7 @@ const appContainer = document.querySelector(".app-container");
 const chatCard = document.querySelector(".telegram-chat-card");
 
 let currentAudioUrl = null;
+const downloadedMediaCache = {};
 
 const sampleText =
   "Welcome to burmeserecp dot tech. This sample demonstrates clear, professional text to speech generated with Edge TTS.";
@@ -183,7 +184,7 @@ const isLocalHost = (hn) => {
          hn.endsWith(".local");
 };
 const isLocalDev = isLocalHost(window.location.hostname) || window.location.port === "8080";
-const API_BASE_URL = isLocalDev ? `${window.location.protocol}//${window.location.hostname}:8081` : "";
+const API_BASE_URL = "";
 
 function getApiUrl(url) {
   if (url.startsWith("/api/")) {
@@ -389,6 +390,156 @@ if (textInput) textInput.addEventListener("input", updateCount);
 if (rateInput) rateInput.addEventListener("input", updateSliders);
 if (pitchInput) pitchInput.addEventListener("input", updateSliders);
 
+// ===== Telegram-style Inline TTS Generated Audio Player =====
+function renderGeneratedAudioPlayer(audioBlob, audioUrl, voiceName) {
+  const container = document.getElementById("generatedAudioContainer");
+  if (!container) return;
+
+  container.style.display = "block";
+  const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(2) + " MB";
+
+  container.innerHTML = `
+    <div class="generated-audio-card">
+      <button class="audio-play-icon" id="generatedAudioPlayBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px; margin-left: 2px;"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="audio-info">
+        <div class="audio-name">${voiceName} Voice Studio</div>
+        <div class="audio-duration-size" id="generatedAudioDurationSize">0:00 / 0:00</div>
+        <div class="audio-progress-bar-container" id="generatedAudioProgressContainer">
+          <div class="audio-progress-bar-fill" id="generatedAudioProgressFill"></div>
+        </div>
+      </div>
+      <div class="audio-actions">
+        <button class="ios-btn secondary small-btn" id="generatedAudioSendBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 12px; height: 12px; margin-right: 3px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          <span>Share</span>
+        </button>
+        <a class="ios-btn icon-only circle-btn" id="generatedAudioDownloadBtn" href="${audioUrl}" download="burmeserecp-tts.mp3" style="width: 28px; height: 28px; border-radius: 50%; border: 0.5px solid var(--ios-border); display: flex; align-items: center; justify-content: center; color: var(--ios-accent);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </a>
+      </div>
+    </div>
+  `;
+
+  const audio = new Audio(audioUrl);
+  audio.preload = "auto";
+
+  const playBtn = document.getElementById("generatedAudioPlayBtn");
+  const timeLabel = document.getElementById("generatedAudioDurationSize");
+  const progressFill = document.getElementById("generatedAudioProgressFill");
+  const progressContainer = document.getElementById("generatedAudioProgressContainer");
+  const shareBtn = document.getElementById("generatedAudioSendBtn");
+
+  const formatTime = (secs) => {
+    if (isNaN(secs)) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  audio.addEventListener("loadedmetadata", () => {
+    timeLabel.textContent = `0:00 / ${formatTime(audio.duration)} (${sizeMB})`;
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    const cur = audio.currentTime;
+    const dur = audio.duration || 0;
+    const pct = dur > 0 ? (cur / dur) * 100 : 0;
+    progressFill.style.width = pct + "%";
+    timeLabel.textContent = `${formatTime(cur)} / ${formatTime(dur)} (${sizeMB})`;
+  });
+
+  audio.addEventListener("ended", () => {
+    playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px; margin-left: 2px;"><path d="M8 5v14l11-7z"/></svg>`;
+    progressFill.style.width = "0%";
+  });
+
+  playBtn.addEventListener("click", () => {
+    document.querySelectorAll("audio, video").forEach(el => {
+      el.pause();
+    });
+
+    if (audio.paused) {
+      audio.play().then(() => {
+        playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+      }).catch(err => console.error(err));
+    } else {
+      audio.pause();
+      playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px; margin-left: 2px;"><path d="M8 5v14l11-7z"/></svg>`;
+    }
+  });
+
+  progressContainer.addEventListener("click", (e) => {
+    const rect = progressContainer.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const dur = audio.duration || 0;
+    audio.currentTime = pos * dur;
+  });
+
+  shareBtn.addEventListener("click", async () => {
+    if (!isUserSignedIn) {
+      showToast(currentLang === 'en' ? "Please sign in to share in chat." : "ချက်တင်တွင် မျှဝေရန် ကျေးဇူးပြု၍ အကောင့်ဝင်ပါ။");
+      openAuthModal();
+      return;
+    }
+
+    const originalText = shareBtn.innerHTML;
+    shareBtn.disabled = true;
+    shareBtn.innerHTML = "⏳ Sharing...";
+
+    try {
+      const ttsFileName = "generated-tts-" + Date.now() + ".mp3";
+      const resPresign = await authFetch("/api/storage/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: ttsFileName, content_type: "audio/mpeg" })
+      });
+
+      if (!resPresign.ok) throw new Error("Presign request failed");
+      const presignData = await resPresign.json();
+
+      const resUpload = await fetch(presignData.upload_url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "x-amz-acl": "public-read"
+        },
+        body: audioBlob
+      });
+
+      if (!resUpload.ok) throw new Error("Failed to upload audio to storage");
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        const tempId = "temp-upload-" + Date.now();
+        const payload = {
+          text: "",
+          avatarBg: "",
+          avatar_url: myAvatarUrl,
+          tempId: tempId,
+          attachment: {
+            url: presignData.download_url,
+            filename: ttsFileName,
+            content_type: "audio/mpeg",
+            size: audioBlob.size
+          }
+        };
+        socket.send(JSON.stringify(payload));
+        showToast(currentLang === 'en' ? "Audio shared to Community Chat!" : "အသံဖိုင်ကို Community ချက်တင်သို့ မျှဝေပြီးပါပြီ။");
+        showChatPage();
+      } else {
+        throw new Error("Chat connection is offline.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Failed to share audio.");
+    } finally {
+      shareBtn.innerHTML = originalText;
+      shareBtn.disabled = false;
+    }
+  });
+}
+
 if (form) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -414,6 +565,21 @@ if (form) {
     }
     setDownloadState(false);
     
+    // Show skeleton shimmer inside generatedAudioContainer
+    const generatedAudioContainer = document.getElementById("generatedAudioContainer");
+    if (generatedAudioContainer) {
+      generatedAudioContainer.style.display = "block";
+      generatedAudioContainer.innerHTML = `
+        <div class="generated-audio-card-skeleton">
+          <div class="skeleton-play-btn"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line-title"></div>
+            <div class="skeleton-line-detail"></div>
+          </div>
+        </div>
+      `;
+    }
+
     // Show miniPlayer immediately and set to generating state
     if (miniPlayer) {
       miniPlayer.style.display = "block";
@@ -456,12 +622,20 @@ if (form) {
       setStatus(TRANSLATIONS[currentLang]["audio-ready-desc"], "ready");
       if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["audio-ready"];
       if (miniSub) miniSub.textContent = selectedVoiceText;
+      
+      // Render our inline Telegram-style audio player
+      renderGeneratedAudioPlayer(audioBlob, currentAudioUrl, selectedVoiceText);
     } catch (error) {
       setStatus(error.message || TRANSLATIONS[currentLang]["something-wrong"]);
       if (miniTitle) miniTitle.textContent = TRANSLATIONS[currentLang]["error"];
       showToast(error.message || TRANSLATIONS[currentLang]["something-wrong"]);
       if (!currentAudioUrl && miniPlayer) {
         miniPlayer.style.display = "none";
+      }
+      const generatedAudioContainer = document.getElementById("generatedAudioContainer");
+      if (generatedAudioContainer) {
+        generatedAudioContainer.style.display = "none";
+        generatedAudioContainer.innerHTML = "";
       }
     } finally {
       // hideProgressModal();
@@ -1200,6 +1374,109 @@ function showContextMenu(e, messageId, isSelf) {
   });
 }
 
+// ===== Telegram-style Media Download Placeholder with Circular Progress =====
+function renderDownloadPlaceholder(attachDiv, attachment, type, successCallback) {
+  const sizeMB = attachment.size ? (attachment.size / 1024 / 1024).toFixed(1) + " MB" : "Media";
+  const aspectStyle = (attachment.width && attachment.height) ? `aspect-ratio: ${attachment.width} / ${attachment.height}; width: 100%;` : "width: 100%; height: 200px;";
+  
+  const container = document.createElement("div");
+  container.className = "media-download-placeholder";
+  container.style.cssText = `position: relative; width: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); overflow: hidden; border-radius: 8px; ${aspectStyle}`;
+  
+  const blurBg = document.createElement("div");
+  blurBg.className = "media-blur-background";
+  blurBg.style.cssText = "position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('images/community_logo.png') no-repeat center/cover; filter: blur(35px) brightness(0.5); opacity: 0.6; width: 100%; height: 100%;";
+  container.appendChild(blurBg);
+  
+  const controlDiv = document.createElement("div");
+  controlDiv.className = "media-download-control";
+  controlDiv.style.cssText = "position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;";
+  
+  const progressWrapper = document.createElement("div");
+  progressWrapper.className = "download-progress-circle-wrapper";
+  progressWrapper.style.cssText = "position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;";
+  
+  progressWrapper.innerHTML = `
+    <svg width="50" height="50" style="position: absolute; transform: rotate(-90deg);">
+      <circle stroke="rgba(255, 255, 255, 0.2)" stroke-width="3.5" fill="transparent" r="20" cx="25" cy="25"/>
+      <circle class="progress-ring-fill" stroke="#ffffff" stroke-width="3.5" fill="transparent" r="20" cx="25" cy="25" stroke-dasharray="125.66" stroke-dashoffset="125.66" style="transition: stroke-dashoffset 0.1s;"/>
+    </svg>
+  `;
+  
+  const dlBtn = document.createElement("button");
+  dlBtn.className = "media-download-action-btn";
+  dlBtn.type = "button";
+  dlBtn.style.cssText = "width: 36px; height: 36px; border-radius: 50%; background: rgba(0, 0, 0, 0.65); border: none; color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; z-index: 2;";
+  dlBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
+  progressWrapper.appendChild(dlBtn);
+  
+  controlDiv.appendChild(progressWrapper);
+  
+  const sizeLabel = document.createElement("span");
+  sizeLabel.className = "media-download-size";
+  sizeLabel.style.cssText = "color: #ffffff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.6);";
+  sizeLabel.textContent = sizeMB;
+  controlDiv.appendChild(sizeLabel);
+  
+  container.appendChild(controlDiv);
+  
+  attachDiv.innerHTML = "";
+  attachDiv.appendChild(container);
+  
+  const fillCircle = progressWrapper.querySelector(".progress-ring-fill");
+  
+  dlBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dlBtn.disabled = true;
+    dlBtn.style.opacity = "0.5";
+    
+    dlBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width: 12px; height: 12px; animation: spin 1s linear infinite; color: #ffffff;">
+        <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="16"></circle>
+      </svg>
+    `;
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", attachment.url, true);
+    xhr.responseType = "blob";
+    
+    xhr.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        const currentMB = (event.loaded / 1024 / 1024).toFixed(1);
+        const totalMB = (event.total / 1024 / 1024).toFixed(1);
+        sizeLabel.textContent = `${currentMB} / ${totalMB} MB (${percent}%)`;
+        
+        const offset = 125.66 - (percent / 100) * 125.66;
+        if (fillCircle) fillCircle.style.strokeDashoffset = offset;
+      }
+    };
+    
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const blob = xhr.response;
+        const localUrl = URL.createObjectURL(blob);
+        downloadedMediaCache[attachment.url] = localUrl;
+        successCallback(localUrl);
+      } else {
+        sizeLabel.textContent = "Error loading";
+        dlBtn.disabled = false;
+        dlBtn.style.opacity = "1";
+        dlBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
+      }
+    };
+    
+    xhr.onerror = () => {
+      sizeLabel.textContent = "Failed";
+      dlBtn.disabled = false;
+      dlBtn.style.opacity = "1";
+      dlBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
+    };
+    
+    xhr.send();
+  });
+}
+
 // buildMessageElement: builds and returns a chat message DOM element without appending it.
 // Used by both appendChatMessage and renderChatHistory (for batch history rendering).
 function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}, tempId = '') {
@@ -1299,7 +1576,12 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
             });
             attachDiv.appendChild(img);
           };
-          renderImage(attachment.url);
+          
+          if (downloadedMediaCache[attachment.url]) {
+            renderImage(downloadedMediaCache[attachment.url]);
+          } else {
+            renderDownloadPlaceholder(attachDiv, attachment, "image", renderImage);
+          }
 
         } else if (attachment.content_type && attachment.content_type.startsWith("video/")) {
           attachDiv.className = "msg-video-player";
@@ -1343,11 +1625,16 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
             attachDiv.appendChild(overlay);
           };
           
-          renderVideo(attachment.url);
+          if (downloadedMediaCache[attachment.url]) {
+            renderVideo(downloadedMediaCache[attachment.url]);
+          } else {
+            renderDownloadPlaceholder(attachDiv, attachment, "video", renderVideo);
+          }
+          
           attachDiv.addEventListener('click', (e) => {
             e.stopPropagation();
             const currentVideo = attachDiv.querySelector("video");
-            const playUrl = currentVideo ? currentVideo.src : attachment.url;
+            const playUrl = currentVideo ? currentVideo.src : (downloadedMediaCache[attachment.url] || attachment.url);
             openMediaViewer(playUrl, 'video');
           });
         } else if (attachment.content_type && attachment.content_type.startsWith("audio/")) {
@@ -1356,7 +1643,7 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
           
           const audio = document.createElement("audio");
           audio.src = attachment.url;
-          audio.preload = "none";
+          audio.preload = "metadata";
           attachDiv.appendChild(audio);
 
           const playBtn = document.createElement("div");
@@ -1368,9 +1655,43 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
           infoDiv.className = "audio-info";
           infoDiv.innerHTML = `
             <div class="audio-name">${attachment.filename || 'Audio Attachment'}</div>
-            <div class="audio-duration-size">${sizeMB} • Audio</div>
+            <div class="audio-duration-size">0:00 / 0:00 (${sizeMB})</div>
+            <div class="audio-progress-bar-container">
+              <div class="audio-progress-bar-fill"></div>
+            </div>
           `;
           attachDiv.appendChild(infoDiv);
+
+          const durationSizeLabel = infoDiv.querySelector(".audio-duration-size");
+          const progressContainer = infoDiv.querySelector(".audio-progress-bar-container");
+          const progressFill = infoDiv.querySelector(".audio-progress-bar-fill");
+
+          const formatTime = (secs) => {
+            if (isNaN(secs)) return "0:00";
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+          };
+
+          audio.addEventListener("loadedmetadata", () => {
+            durationSizeLabel.textContent = `0:00 / ${formatTime(audio.duration)} (${sizeMB})`;
+          });
+
+          audio.addEventListener("timeupdate", () => {
+            const cur = audio.currentTime;
+            const dur = audio.duration || 0;
+            const pct = dur > 0 ? (cur / dur) * 100 : 0;
+            progressFill.style.width = pct + "%";
+            durationSizeLabel.textContent = `${formatTime(cur)} / ${formatTime(dur)} (${sizeMB})`;
+          });
+
+          progressContainer.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            const dur = audio.duration || 0;
+            audio.currentTime = pos * dur;
+          });
 
           attachDiv.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1390,6 +1711,7 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
 
           audio.addEventListener('ended', () => {
             playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+            progressFill.style.width = "0%";
           });
           audio.addEventListener('pause', () => {
             playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
@@ -1604,9 +1926,8 @@ function connectWebSocket() {
           const localBubble = chatMessages.querySelector(`[data-msg-id="${message.tempId}"]`);
           if (localBubble) {
             if (message.attachment && message.attachment.url) {
-              // Revoke Object URL now that broadcast has arrived and we are replacing it
               if (localBubble.dataset.previewUrl) {
-                URL.revokeObjectURL(localBubble.dataset.previewUrl);
+                downloadedMediaCache[message.attachment.url] = localBubble.dataset.previewUrl;
               }
               // Replace temporary upload preview bubble with final rendered element
               const newMsg = buildMessageElement(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url, message.message_id, message.reactions, message.attachment);
@@ -1810,10 +2131,21 @@ if (avatarUploadBtn && signUpAvatarFile) {
     avatarUploadBtn.innerHTML = "⏳ Uploading (0%)...";
 
     try {
+      let fileType = file.type || "image/jpeg";
+      let fileName = file.name || ("avatar-" + Date.now() + ".jpg");
+
+      // Fix generic/empty types on mobile
+      if (fileType === "application/octet-stream" || !fileType) {
+        const ext = fileName.split('.').pop().toLowerCase();
+        if (ext === 'png') fileType = 'image/png';
+        else if (ext === 'gif') fileType = 'image/gif';
+        else fileType = 'image/jpeg';
+      }
+
       const response = await authFetch("/api/storage/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, content_type: file.type })
+        body: JSON.stringify({ filename: fileName, content_type: fileType })
       });
 
       if (!response.ok) throw new Error("Failed to get presigned URL");
@@ -1821,7 +2153,7 @@ if (avatarUploadBtn && signUpAvatarFile) {
 
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", data.upload_url, true);
-      xhr.setRequestHeader("Content-Type", file.type);
+      xhr.setRequestHeader("Content-Type", fileType);
       xhr.setRequestHeader("x-amz-acl", "public-read");
 
       xhr.upload.onprogress = (e) => {
@@ -2278,10 +2610,34 @@ function uploadChatAttachment(file, dims = null) {
 
   const progressTextEl = msgDiv.querySelector(".progress-text");
 
+  let fileType = file.type || "application/octet-stream";
+  let fileName = file.name || ("attachment-" + Date.now() + ".bin");
+
+  // Fix generic/empty content-type on mobile
+  if (fileType === "application/octet-stream" || !fileType) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const mimeTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'mp4': 'video/mp4',
+      'mov': 'video/quicktime',
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'pdf': 'application/pdf',
+      'zip': 'application/zip',
+      'txt': 'text/plain'
+    };
+    if (mimeTypes[ext]) {
+      fileType = mimeTypes[ext];
+    }
+  }
+
   authFetch("/api/storage/presign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename: file.name, content_type: file.type })
+    body: JSON.stringify({ filename: fileName, content_type: fileType })
   })
   .then(async (res) => {
     if (!res.ok) throw new Error("Sign request failed");
@@ -2290,7 +2646,7 @@ function uploadChatAttachment(file, dims = null) {
   .then((data) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", data.upload_url, true);
-    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.setRequestHeader("Content-Type", fileType);
     xhr.setRequestHeader("x-amz-acl", "public-read");
 
     xhr.upload.onprogress = (e) => {
@@ -2309,7 +2665,7 @@ function uploadChatAttachment(file, dims = null) {
         const tempBubble = chatMessages.querySelector(`[data-msg-id="${tempId}"]`);
         if (tempBubble) {
           if (tempBubble.dataset.previewUrl) {
-            URL.revokeObjectURL(tempBubble.dataset.previewUrl);
+            downloadedMediaCache[data.download_url] = tempBubble.dataset.previewUrl;
           }
           const overlay = tempBubble.querySelector(".upload-progress-overlay");
           if (overlay) overlay.style.display = "none";
@@ -2322,11 +2678,11 @@ function uploadChatAttachment(file, dims = null) {
           tempId: tempId, // Send tempId so server broadcasts it back!
           attachment: {
             url: data.download_url,
-            filename: file.name,
-            content_type: file.type,
+            filename: fileName,
+            content_type: fileType,
             size: file.size,
-            width: dims ? dims.width : undefined,
-            height: dims ? dims.height : undefined
+            width: dims ? dims.width : dims.videoWidth || undefined,
+            height: dims ? dims.height : dims.videoHeight || undefined
           }
         };
         socket.send(JSON.stringify(payload));
@@ -2398,7 +2754,7 @@ if (chatAttachBtn && attachMenu) {
   });
 
   document.addEventListener("click", (e) => {
-    if (!attachMenu.contains(e.target) && e.target !== chatAttachBtn) {
+    if (!attachMenu.contains(e.target) && !chatAttachBtn.contains(e.target)) {
       attachMenu.style.display = "none";
     }
   });

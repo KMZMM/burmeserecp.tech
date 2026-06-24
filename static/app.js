@@ -51,6 +51,8 @@ const loginHeaderBtn = document.getElementById("loginHeaderBtn");
 const lockSignInBtn = document.getElementById("lockSignInBtn");
 const statusDot = document.querySelector(".status-dot");
 const onlineCountEl = document.getElementById("onlineCount");
+const chatInputLockOverlay = document.getElementById("chatInputLockOverlay");
+const chatInputArea = document.getElementById("chatInputArea");
 
 const miniPlayer = document.getElementById("miniPlayer");
 const portalContainer = document.getElementById("portalContainer");

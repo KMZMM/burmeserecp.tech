@@ -49,6 +49,8 @@ const chatMessageInput = document.getElementById("chatMessageInput");
 const chatMessages = document.getElementById("chatMessages");
 const loginHeaderBtn = document.getElementById("loginHeaderBtn");
 const lockSignInBtn = document.getElementById("lockSignInBtn");
+const statusDot = document.querySelector(".status-dot");
+const onlineCountEl = document.getElementById("onlineCount");
 
 const miniPlayer = document.getElementById("miniPlayer");
 const portalContainer = document.getElementById("portalContainer");
@@ -962,7 +964,7 @@ function showContextMenu(e, messageId, isSelf) {
   });
 }
 
-function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}) {
+function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}, tempId = '') {
   if (!chatMessages) return;
 
   const msgDiv = document.createElement("div");
@@ -978,12 +980,13 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
     const timeStr = formatCurrentTime();
 
     if (isSelf) {
+      const ticks = tempId ? "✓" : "✓✓";
       msgDiv.innerHTML = `
         <div class="msg-bubble">
           <div class="msg-text"></div>
           <div class="msg-time">
             <span>${timeStr}</span>
-            <span class="msg-status-ticks">✓✓</span>
+            <span class="msg-status-ticks">${ticks}</span>
           </div>
         </div>
       `;
@@ -1054,7 +1057,7 @@ function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message'
         }
       }
 
-      if (messageId) {
+      if (messageId && !messageId.startsWith("temp-msg-")) {
         renderReactions(bubble, messageId, reactions);
 
         const isDesktop = window.matchMedia("(hover: hover)").matches;
@@ -1125,10 +1128,29 @@ function connectWebSocket() {
         }
       }
 
-      if (message.type === 'system') {
-        appendChatMessage("System", message.text, false, '', 'system');
       } else if (message.type === 'message') {
         const isSelf = message.sender === myUsername;
+        if (isSelf && message.tempId) {
+          const localBubble = chatMessages.querySelector(`[data-msg-id="${message.tempId}"]`);
+          if (localBubble) {
+            localBubble.setAttribute("data-msg-id", message.message_id);
+            const ticksEl = localBubble.querySelector(".msg-status-ticks");
+            if (ticksEl) ticksEl.textContent = "✓✓";
+            const bubbleEl = localBubble.querySelector(".msg-bubble");
+            if (bubbleEl) {
+              renderReactions(bubbleEl, message.message_id, message.reactions);
+              const isDesktop = window.matchMedia("(hover: hover)").matches;
+              if (isDesktop) {
+                renderHoverReactions(bubbleEl, message.message_id);
+              }
+              bubbleEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showContextMenu(e, message.message_id, true);
+              });
+            }
+            return;
+          }
+        }
         appendChatMessage(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url, message.message_id, message.reactions, message.attachment);
       } else if (message.type === 'delete') {
         const msgEl = chatMessages.querySelector(`[data-msg-id="${message.message_id}"]`);
@@ -1179,10 +1201,14 @@ function handleSendChatMessage() {
   const text = chatMessageInput.value.trim();
   if (!text) return;
 
+  const tempId = "temp-msg-" + Date.now();
+  appendChatMessage(myUsername, text, true, "", "message", myAvatarUrl, tempId, {}, {}, tempId);
+
   const payload = {
     text: text,
     avatarBg: "",
-    avatar_url: myAvatarUrl
+    avatar_url: myAvatarUrl,
+    tempId: tempId
   };
 
   socket.send(JSON.stringify(payload));
@@ -1678,7 +1704,6 @@ if (emojiTrigger && emojiPicker) {
   const chatFileInput = document.getElementById("chatFileInput");
 
   if (attachTrigger && chatFileInput) {
-    attachTrigger.innerHTML = getEmojiHTML("📎", 18);
     attachTrigger.addEventListener("click", (e) => {
       e.stopPropagation();
       if (!isUserSignedIn) {
@@ -1738,6 +1763,10 @@ if (langEnBtn && langMmBtn) {
 
 // ===== Dashboard Portal Logic =====
 function showTtsPage() {
+  if (!isUserSignedIn) {
+    openAuthModal();
+    return;
+  }
   document.body.classList.remove("chat-only-view");
   if (portalContainer) portalContainer.style.display = "none";
   if (appLayoutWrapper) {
@@ -1750,6 +1779,10 @@ function showTtsPage() {
 }
 
 function showChatPage() {
+  if (!isUserSignedIn) {
+    openAuthModal();
+    return;
+  }
   document.body.classList.add("chat-only-view");
   if (portalContainer) portalContainer.style.display = "none";
   if (appLayoutWrapper) {

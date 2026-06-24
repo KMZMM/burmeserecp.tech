@@ -3098,3 +3098,181 @@ body[data-theme="light"] .moon-icon {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* Telegram-Style Inline Video Play Button Overlay */
+.inline-video-overlay-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+.msg-video-player:hover .inline-video-overlay-play {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+.inline-video-overlay-play svg {
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+}
+
+/* Custom Video Player in Fullscreen Media Viewer */
+.custom-video-player {
+  position: relative;
+  max-width: 100%;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  background: #000;
+  animation: zoomIn 0.25s cubic-bezier(0.1, 0.8, 0.25, 1);
+}
+.custom-video-player video {
+  max-width: 100%;
+  max-height: 90vh;
+  display: block;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+/* Big Play Button Overlay inside Fullscreen Viewer */
+.video-overlay-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 68px;
+  height: 68px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 10;
+}
+.video-overlay-play.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.video-overlay-play svg {
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+}
+
+/* Custom Controls Bar inside Fullscreen Viewer */
+.video-controls-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 18px 20px 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 12;
+}
+.custom-video-player:hover .video-controls-bar,
+.custom-video-player.controls-active .video-controls-bar {
+  opacity: 1;
+  transform: translateY(0);
+}
+.video-control-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  opacity: 0.85;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.video-control-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+.video-control-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.video-time-display, .video-duration-display {
+  color: #fff;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-width: 35px;
+  opacity: 0.9;
+  user-select: none;
+}
+.video-progress-container {
+  flex-grow: 1;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+.video-progress-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  position: relative;
+  transition: height 0.15s;
+}
+.video-progress-container:hover .video-progress-bg {
+  height: 6px;
+}
+.video-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: var(--ios-accent, #007aff);
+  border-radius: 3px;
+}
+.video-progress-handle {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.15s;
+  pointer-events: none;
+}
+.video-progress-container:hover .video-progress-handle {
+  transform: translate(-50%, -50%) scale(1);
+}

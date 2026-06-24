@@ -876,8 +876,42 @@ function parseMessageText(text) {
   });
 }
 
+// Cache for optimistic reactions
+window.messageReactionsMap = window.messageReactionsMap || {};
+
+function toggleReactionOptimistically(messageId, emoji, msgBubble) {
+  window.messageReactionsMap = window.messageReactionsMap || {};
+  let reactions = window.messageReactionsMap[messageId] || {};
+  // Deep copy reactions to prevent reference leaks
+  reactions = JSON.parse(JSON.stringify(reactions));
+
+  if (!reactions[emoji]) {
+    reactions[emoji] = [];
+  }
+
+  if (reactions[emoji].includes(myUsername)) {
+    reactions[emoji] = reactions[emoji].filter(u => u !== myUsername);
+    if (reactions[emoji].length === 0) {
+      delete reactions[emoji];
+    }
+  } else {
+    reactions[emoji].push(myUsername);
+  }
+
+  window.messageReactionsMap[messageId] = reactions;
+  if (msgBubble) {
+    renderReactions(msgBubble, messageId, reactions);
+  }
+}
+
 // Render reactions wrapper inside the bubble container
 function renderReactions(msgBubble, messageId, reactions) {
+  window.messageReactionsMap = window.messageReactionsMap || {};
+  if (reactions) {
+    window.messageReactionsMap[messageId] = JSON.parse(JSON.stringify(reactions));
+  } else {
+    window.messageReactionsMap[messageId] = {};
+  }
   let wrapper = msgBubble.querySelector('.msg-reactions-wrapper');
   if (!wrapper) {
     wrapper = document.createElement('div');
@@ -910,6 +944,7 @@ function renderReactions(msgBubble, messageId, reactions) {
         openAuthModal();
         return;
       }
+      toggleReactionOptimistically(messageId, emoji, msgBubble);
       socket.send(JSON.stringify({
         action: "react",
         message_id: messageId,
@@ -943,6 +978,7 @@ function renderHoverReactions(msgBubble, messageId) {
         return;
       }
       btn.classList.add('emoji-bounce');
+      toggleReactionOptimistically(messageId, emoji, msgBubble);
       socket.send(JSON.stringify({
         action: "react",
         message_id: messageId,
@@ -987,12 +1023,17 @@ function showContextMenu(e, messageId, isSelf) {
         return;
       }
       btn.classList.add('emoji-bounce');
+      
+      const msgEl = chatMessages.querySelector(`[data-msg-id="${messageId}"]`);
+      const bubble = msgEl ? msgEl.querySelector('.msg-bubble') : null;
+      toggleReactionOptimistically(messageId, emoji, bubble);
+
       socket.send(JSON.stringify({
         action: "react",
         message_id: messageId,
         emoji: emoji
       }));
-      
+
       // Animate menu closing smoothly
       menu.style.transition = 'opacity 0.22s, transform 0.22s';
       menu.style.opacity = '0';
@@ -1157,7 +1198,10 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
           });
         } else if (attachment.content_type && attachment.content_type.startsWith("video/")) {
           attachDiv.className = "msg-video-player";
-          attachDiv.innerHTML = `<video src="${attachment.url}" controls preload="metadata" playsinline></video>`;
+          attachDiv.innerHTML = `<video src="${attachment.url}" autoplay muted loop playsinline preload="metadata" style="pointer-events: none; width: 100%; display: block;"></video>
+            <div class="inline-video-overlay-play">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg>
+            </div>`;
           attachDiv.addEventListener('click', (e) => {
             e.stopPropagation();
             openMediaViewer(attachment.url, 'video');
@@ -2248,11 +2292,196 @@ function openMediaViewer(src, type) {
   if (type === "image") {
     content.innerHTML = `<img src="${src}" alt="Preview" />`;
   } else if (type === "video") {
-    content.innerHTML = `<video src="${src}" controls autoplay playsinline></video>`;
+    content.innerHTML = `
+      <div class="custom-video-player" id="customVideoPlayer">
+        <video src="${src}" playsinline autoplay id="viewerVideo"></video>
+        
+        <!-- Big Play Button Overlay -->
+        <div class="video-overlay-play" id="videoOverlayPlay">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg>
+        </div>
+        
+        <!-- Custom Controls Bar -->
+        <div class="video-controls-bar" id="videoControlsBar">
+          <button class="video-control-btn" id="videoPlayPauseBtn">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg>
+            <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+          </button>
+          
+          <div class="video-time-display" id="videoTimeDisplay">0:00</div>
+          
+          <div class="video-progress-container" id="videoProgressContainer">
+            <div class="video-progress-bg">
+              <div class="video-progress-fill" id="videoProgressFill"></div>
+              <div class="video-progress-handle" id="videoProgressHandle"></div>
+            </div>
+          </div>
+          
+          <div class="video-duration-display" id="videoDurationDisplay">0:00</div>
+          
+          <button class="video-control-btn" id="videoMuteBtn">
+            <svg class="unmuted-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>
+            <svg class="muted-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"></path></svg>
+          </button>
+        </div>
+      </div>
+    `;
+    setupCustomVideoPlayer();
   }
   
   modal.style.display = "flex";
   setTimeout(() => modal.classList.add("active"), 10);
+}
+
+function setupCustomVideoPlayer() {
+  const player = document.getElementById("customVideoPlayer");
+  const video = document.getElementById("viewerVideo");
+  if (!player || !video) return;
+
+  const playPauseBtn = document.getElementById("videoPlayPauseBtn");
+  const overlayPlay = document.getElementById("videoOverlayPlay");
+  const timeDisplay = document.getElementById("videoTimeDisplay");
+  const durationDisplay = document.getElementById("videoDurationDisplay");
+  const progressContainer = document.getElementById("videoProgressContainer");
+  const progressFill = document.getElementById("videoProgressFill");
+  const progressHandle = document.getElementById("videoProgressHandle");
+  const muteBtn = document.getElementById("videoMuteBtn");
+
+  const playIcon = playPauseBtn.querySelector(".play-icon");
+  const pauseIcon = playPauseBtn.querySelector(".pause-icon");
+  const unmutedIcon = muteBtn.querySelector(".unmuted-icon");
+  const mutedIcon = muteBtn.querySelector(".muted-icon");
+
+  let controlsTimeout;
+
+  function formatTime(secs) {
+    if (isNaN(secs)) return "0:00";
+    const minutes = Math.floor(secs / 60);
+    const seconds = Math.floor(secs % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  }
+
+  function showControlsTemporarily() {
+    player.classList.add("controls-active");
+    clearTimeout(controlsTimeout);
+    controlsTimeout = setTimeout(() => {
+      if (!video.paused) {
+        player.classList.remove("controls-active");
+      }
+    }, 2500);
+  }
+
+  function togglePlay() {
+    if (video.paused) {
+      video.play().catch(err => console.error(err));
+      playIcon.style.display = "none";
+      pauseIcon.style.display = "block";
+      overlayPlay.classList.remove("visible");
+    } else {
+      video.pause();
+      playIcon.style.display = "block";
+      pauseIcon.style.display = "none";
+      overlayPlay.classList.add("visible");
+      player.classList.add("controls-active");
+    }
+  }
+
+  function toggleMute() {
+    video.muted = !video.muted;
+    if (video.muted) {
+      unmutedIcon.style.display = "none";
+      mutedIcon.style.display = "block";
+    } else {
+      unmutedIcon.style.display = "block";
+      mutedIcon.style.display = "none";
+    }
+  }
+
+  function updateProgress() {
+    const pct = (video.currentTime / video.duration) * 100 || 0;
+    progressFill.style.width = `${pct}%`;
+    progressHandle.style.left = `${pct}%`;
+    timeDisplay.textContent = formatTime(video.currentTime);
+  }
+
+  function seek(e) {
+    const rect = progressContainer.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    video.currentTime = Math.min(Math.max(pos, 0), 1) * video.duration;
+  }
+
+  video.addEventListener("play", () => {
+    playIcon.style.display = "none";
+    pauseIcon.style.display = "block";
+    overlayPlay.classList.remove("visible");
+  });
+
+  video.addEventListener("pause", () => {
+    playIcon.style.display = "block";
+    pauseIcon.style.display = "none";
+    overlayPlay.classList.add("visible");
+    player.classList.add("controls-active");
+  });
+
+  video.addEventListener("timeupdate", updateProgress);
+
+  video.addEventListener("loadedmetadata", () => {
+    durationDisplay.textContent = formatTime(video.duration);
+  });
+
+  video.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePlay();
+  });
+
+  player.addEventListener("mousemove", showControlsTemporarily);
+  player.addEventListener("touchstart", showControlsTemporarily, {passive: true});
+
+  playPauseBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePlay();
+  });
+
+  muteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMute();
+  });
+
+  let isDragging = false;
+  progressContainer.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    seek(e);
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (isDragging) seek(e);
+  });
+
+  window.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
+
+  player.addEventListener("click", (e) => {
+    if (e.target === player) {
+      closeMediaViewer();
+    }
+  });
+
+  const handleKeyDown = (e) => {
+    if (e.code === "Space") {
+      e.preventDefault();
+      togglePlay();
+    }
+  };
+  window.addEventListener("keydown", handleKeyDown);
+
+  const observer = new MutationObserver((mutations, obs) => {
+    if (!document.getElementById("customVideoPlayer")) {
+      window.removeEventListener("keydown", handleKeyDown);
+      obs.disconnect();
+    }
+  });
+  observer.observe(document.getElementById("mediaViewerContent"), { childList: true });
 }
 
 function closeMediaViewer() {

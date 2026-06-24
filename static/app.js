@@ -2711,3 +2711,46 @@ function playAudioInMiniPlayer(url, filename, sender) {
     statusPill.textContent = TRANSLATIONS[currentLang]["audio-ready"] || "Playing";
   }
 }
+
+// ===== Dashboard Portal Logic =====
+function showTtsPage() {
+  if (portalContainer) portalContainer.style.display = "none";
+  if (appLayoutWrapper) {
+    appLayoutWrapper.style.display = ""; 
+    appLayoutWrapper.classList.add("show-tts-only");
+    appLayoutWrapper.classList.remove("show-chat-only");
+  }
+  if (appContainer) appContainer.style.display = "block";
+  if (chatCard) chatCard.style.display = "none";
+  if (homeBtn) homeBtn.style.display = "inline-flex";
+}
+
+function showChatPage() {
+  if (portalContainer) portalContainer.style.display = "none";
+  if (appLayoutWrapper) {
+    appLayoutWrapper.style.display = ""; 
+    appLayoutWrapper.classList.remove("show-tts-only");
+    appLayoutWrapper.classList.add("show-chat-only");
+  }
+  if (appContainer) appContainer.style.display = "none";
+  if (chatCard) chatCard.style.display = "block";
+  if (homeBtn) homeBtn.style.display = "inline-flex";
+}
+
+function showPortalPage() {
+  if (portalContainer) portalContainer.style.display = "flex";
+  if (appLayoutWrapper) {
+    appLayoutWrapper.style.display = "none";
+    appLayoutWrapper.classList.remove("show-tts-only", "show-chat-only");
+  }
+  if (homeBtn) homeBtn.style.display = "none";
+}
+
+// Bind to window object for inline HTML onclick handlers
+window.showTtsPage = showTtsPage;
+window.showChatPage = showChatPage;
+window.showPortalPage = showPortalPage;
+
+if (goTtsBtn) goTtsBtn.addEventListener("click", showTtsPage);
+if (goChatBtn) goChatBtn.addEventListener("click", showChatPage);
+if (homeBtn) homeBtn.addEventListener("click", showPortalPage);

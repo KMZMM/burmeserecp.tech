@@ -401,6 +401,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.commit()
     else:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -422,6 +423,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.commit()
     
     # Run database migrations for older deployments to add reactions/attachment columns safely
     if db_type == "postgres":

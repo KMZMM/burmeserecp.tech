@@ -2432,6 +2432,7 @@ if (chatAttachBtn && attachMenu) {
     chatDocumentInput.addEventListener("change", () => handleFileChange(chatDocumentInput));
   }
 }
+}
 
 // ===== Premium Centered Media Viewer Controls =====
 function openMediaViewer(src, type) {

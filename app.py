@@ -16,7 +16,7 @@ from typing import Any
 import boto3
 import requests
 import edge_tts
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Header, Depends
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -104,6 +104,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith(".html") or path.endswith(".js") or path.endswith(".css"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 DB_PATH = "users.db"
 CREDS_PATH = "C:/Users/HP/.gemini/antigravity/brain/47446197-b7fd-43a6-a29d-da44be16af0f/scratch/infrastructure_credentials.json"
@@ -454,7 +464,7 @@ async def subscribe_plan(payload: SubscribeRequest, user: dict = Depends(get_cur
     return JSONResponse({"status": "success", "plan": target_plan, "credits_remaining": new_credits})
 
 @app.post("/api/storage/presign")
-async def generate_presigned_upload_url(payload: PresignRequest, user: dict = Depends(get_current_user)):
+async def generate_presigned_upload_url(payload: PresignRequest):
     try:
         access_key = os.environ.get("DO_SPACES_KEY")
         secret_key = os.environ.get("DO_SPACES_SECRET")

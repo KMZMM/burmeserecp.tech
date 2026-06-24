@@ -177,13 +177,23 @@ function setStatus(message, tone = "idle") {
   }
 }
 
+const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const API_BASE_URL = isLocalDev ? "http://localhost:8081" : "";
+
+function getApiUrl(url) {
+  if (url.startsWith("/api/")) {
+    return API_BASE_URL + url;
+  }
+  return url;
+}
+
 async function authFetch(url, options = {}) {
   const token = safeStorage.getItem("jwt_token");
   options.headers = options.headers || {};
   if (token) {
     options.headers["Authorization"] = `Bearer ${token}`;
   }
-  const response = await fetch(url, options);
+  const response = await fetch(getApiUrl(url), options);
   if (response.status === 401) {
     safeStorage.removeItem("jwt_token");
     safeStorage.setItem("tg_signed_in", "false");
@@ -329,7 +339,7 @@ async function loadVoices() {
   voiceSelect.innerHTML = `<option>${currentLang === 'en' ? 'Loading voices...' : 'အသံများ တင်နေသည်...'}</option>`;
   try {
     const token = safeStorage.getItem("jwt_token") || "";
-    const response = await fetch(`/api/voices?user_token=${encodeURIComponent(token)}`);
+    const response = await fetch(getApiUrl(`/api/voices?user_token=${encodeURIComponent(token)}`));
     if (!response.ok) throw new Error("Could not load voices.");
     const voices = await response.json();
 
@@ -1506,12 +1516,12 @@ function connectWebSocket() {
     showChatSkeleton();
   }
 
-  // Check if we are running in local dev (localhost, 127.0.0.1, or file protocol)
-  const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || !window.location.hostname;
+  // Check if we are running from a local file protocol (or empty hostname)
+  const isFileProtocol = window.location.protocol === "file:" || !window.location.hostname;
   
-  // Set host and protocol. If local, route to online production websocket server.
-  const wsProtocol = isLocal ? "wss:" : (window.location.protocol === "https:" ? "wss:" : "ws:");
-  const wsHost = isLocal ? "burmeserecap.tech" : window.location.host;
+  // Set host and protocol. If file protocol, fallback to online production server. Otherwise use the current host.
+  const wsProtocol = isFileProtocol ? "wss:" : (window.location.protocol === "https:" ? "wss:" : "ws:");
+  const wsHost = isFileProtocol ? "burmeserecap.tech" : window.location.host;
   
   // Use a stable guest username stored in sessionStorage — prevents double-counting on reconnect
   let wsUsername;
@@ -1971,7 +1981,7 @@ if (signInForm) {
 
     showProgressModal(currentLang === 'en' ? "Signing In" : "ဝင်ရောက်နေသည်", currentLang === 'en' ? "Verifying credentials..." : "စစ်ဆေးနေပါသည်...");
 
-    fetch("/api/login", {
+    fetch(getApiUrl("/api/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: emailVal, password: passwordVal })
@@ -2023,7 +2033,7 @@ if (signUpForm) {
       currentLang === 'en' ? "Setting up your profile..." : "သင်၏ပရိုဖိုင်ကို ပြင်ဆင်နေပါသည်..."
     );
 
-    fetch("/api/signup", {
+    fetch(getApiUrl("/api/signup"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

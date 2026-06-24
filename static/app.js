@@ -1192,6 +1192,9 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
 function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}, tempId = '') {
   if (!chatMessages) return;
   const msgDiv = buildMessageElement(sender, text, isSelf, avatarBg, type, avatarUrl, messageId, reactions, attachment, tempId);
+  // Remove empty-state placeholder if present before appending first real message
+  const emptyState = chatMessages.querySelector('.chat-empty-state, [data-empty-state]');
+  if (emptyState) emptyState.remove();
   chatMessages.appendChild(msgDiv);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -1230,6 +1233,8 @@ function renderChatHistory(messages) {
 
   if (!messages || messages.length === 0) {
     const empty = document.createElement('div');
+    empty.setAttribute('data-empty-state', '1');
+    empty.className = 'chat-empty-state';
     empty.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--ios-text-secondary);font-size:13px;opacity:0.7;"><div style="font-size:32px;margin-bottom:10px;">&#x1F4AC;</div><div>${currentLang === 'en' ? 'No messages yet. Be the first to say hi!' : 'မက်ဆေ့ချ် မရှိသေးပါ။ ပထမဆုံး ဖြစ်လိုက်ပါ!'}</div></div>`;
     chatMessages.appendChild(empty);
     return;
@@ -1260,7 +1265,18 @@ function connectWebSocket() {
   const wsProtocol = isLocal ? "wss:" : (window.location.protocol === "https:" ? "wss:" : "ws:");
   const wsHost = isLocal ? "burmeserecap.tech" : window.location.host;
   
-  const wsUsername = isUserSignedIn ? myUsername : `Guest_${Math.floor(100 + Math.random() * 900)}`;
+  // Use a stable guest username stored in sessionStorage — prevents double-counting on reconnect
+  let wsUsername;
+  if (isUserSignedIn) {
+    wsUsername = myUsername;
+  } else {
+    let guestId = sessionStorage.getItem('guest_ws_id');
+    if (!guestId) {
+      guestId = 'Guest_' + Math.floor(1000 + Math.random() * 9000);
+      sessionStorage.setItem('guest_ws_id', guestId);
+    }
+    wsUsername = guestId;
+  }
   const wsUrl = `${wsProtocol}//${wsHost}/ws/chat?username=${encodeURIComponent(wsUsername)}`;
 
   console.log(`Connecting to WebSocket as ${wsUsername}: ${wsUrl}`);
@@ -1301,7 +1317,12 @@ function connectWebSocket() {
         }
       }
 
-      if (message.type === 'history') {
+      if (message.type === 'ping') {
+        // Respond to server keepalive ping to maintain connection
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ action: 'pong' }));
+        }
+      } else if (message.type === 'history') {
         // Batch render all history at once — Telegram-like smooth load
         renderChatHistory(message.messages || []);
       } else if (message.type === 'system') {

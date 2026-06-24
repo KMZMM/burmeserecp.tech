@@ -119,44 +119,71 @@ def get_total_users_count() -> int:
 # ===== Connection Manager for Real-Time Live Chat =====
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        # Maps websocket -> username for accurate tracking
+        self.active_connections: dict[WebSocket, str] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, username: str):
         await websocket.accept()
-        self.active_connections.append(websocket)
+        self.active_connections[websocket] = username
 
     def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
+        self.active_connections.pop(websocket, None)
 
     def get_online_count(self) -> int:
         return len(self.active_connections)
 
     async def broadcast(self, message: dict):
-        # Only include online count (no expensive DB query per message)
         message["onlineCount"] = self.get_online_count()
-        disconnected = []
-        for connection in self.active_connections:
+        dead = []
+        for ws in list(self.active_connections.keys()):
             try:
-                await connection.send_json(message)
+                await ws.send_json(message)
             except Exception:
-                disconnected.append(connection)
-        # Clean up any dead connections discovered during broadcast
-        for conn in disconnected:
-            self.disconnect(conn)
+                dead.append(ws)
+        for ws in dead:
+            self.disconnect(ws)
+
+    async def send_personal(self, websocket: WebSocket, message: dict):
+        try:
+            await websocket.send_json(message)
+        except Exception:
+            self.disconnect(websocket)
 
 manager = ConnectionManager()
 
+# ===== Server-side ping task to keep DO App Platform connections alive =====
+async def keepalive_ping():
+    """Send a ping to all clients every 25s to prevent idle timeout (DO uses ~60s)."""
+    while True:
+        await asyncio.sleep(25)
+        if manager.active_connections:
+            dead = []
+            for ws in list(manager.active_connections.keys()):
+                try:
+                    await ws.send_json({"type": "ping"})
+                except Exception:
+                    dead.append(ws)
+            for ws in dead:
+                manager.disconnect(ws)
+            # After cleanup, broadcast updated count
+            if dead:
+                await manager.broadcast({"type": "count_update"})
+
+@app.on_event("startup")
+async def on_startup():
+    asyncio.create_task(keepalive_ping())
+    asyncio.create_task(fetch_and_cache_voices())
+
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
-  await manager.connect(websocket)
+  await manager.connect(websocket, username)
   
   # Fetch recent message history from database
   conn, db_type = get_db_connection()
   cursor = conn.cursor()
   db_history = []
   try:
-      cursor.execute("SELECT id, sender, text, avatar_bg, avatar_url, reactions, attachment FROM messages ORDER BY created_at DESC LIMIT 30")
+      cursor.execute("SELECT id, sender, text, avatar_bg, avatar_url, reactions, attachment FROM messages ORDER BY created_at DESC LIMIT 50")
       rows = cursor.fetchall()
       rows.reverse()
       for r in rows:
@@ -192,9 +219,10 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
       "onlineCount": manager.get_online_count()
     })
   except Exception:
-    pass
+    manager.disconnect(websocket)
+    return
 
-  # Broadcast updated online count to everyone
+  # Broadcast updated online count to everyone (including the new connection)
   await manager.broadcast({
     "type": "count_update"
   })
@@ -209,6 +237,10 @@ async def websocket_endpoint(websocket: WebSocket, username: str = "Anonymous"):
         data = {"text": data_str, "avatarBg": ""}
       
       action = data.get("action")
+      # Ignore client pong responses (keepalive reply to server ping)
+      if action == "pong":
+        continue
+
       if action == "delete":
         msg_id = data.get("message_id")
         conn, db_type = get_db_connection()
@@ -616,10 +648,7 @@ async def fetch_and_cache_voices():
         if not CACHED_VOICES:
             CACHED_VOICES = FALLBACK_VOICES
 
-@app.on_event("startup")
-async def startup_event():
-    # Fetch in the background so it doesn't block startup
-    asyncio.create_task(fetch_and_cache_voices())
+
 
 @app.get("/api/voices")
 async def get_voices() -> JSONResponse:

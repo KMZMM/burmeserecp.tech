@@ -601,7 +601,7 @@ const TRANSLATIONS = {
     "plan-feature-8": "အဆင့်မြင့် အသံစနစ်အားလုံး အသုံးပြုနိုင်သည်။",
     "plan-feature-9": "၂၄/၇ သီးသန့် ကူညီပံ့ပိုးမှု"
   }
-}};
+};
 
 let currentLang = safeStorage.getItem("tg_lang") || "en";
 

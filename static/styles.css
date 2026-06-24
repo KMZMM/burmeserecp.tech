@@ -1402,27 +1402,31 @@ body[data-theme="light"] .moon-icon {
 }
 
 .form-group input {
-  background: rgba(0, 0, 0, 0.2);
-  border: 0.5px solid var(--ios-border);
-  border-radius: 8px;
-  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
   color: var(--ios-text);
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s, background-color 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
 }
 
 [data-theme="light"] .form-group input {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.03);
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
 }
 
 .form-group input:focus {
   border-color: var(--ios-accent);
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--ios-accent-rgb), 0.15);
 }
 
 [data-theme="light"] .form-group input:focus {
   background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(var(--ios-accent-rgb), 0.1);
 }
 
 .auth-error-msg {
@@ -1434,21 +1438,25 @@ body[data-theme="light"] .moon-icon {
 
 /* Preset Avatar Selection Grid */
 .avatar-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin: 6px 0 10px;
+  margin: 8px 0 12px;
+  justify-content: flex-start;
 }
 
 .avatar-option {
-  width: 100%;
-  aspect-ratio: 1;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: all 0.2s;
-  padding: 1px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 2px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .avatar-option img {
@@ -1456,15 +1464,18 @@ body[data-theme="light"] .moon-icon {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  display: block;
 }
 
 .avatar-option:hover {
-  transform: scale(1.08);
+  transform: scale(1.12);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .avatar-option.active {
   border-color: var(--ios-accent);
-  transform: scale(1.08);
+  transform: scale(1.12);
+  background: rgba(var(--ios-accent-rgb), 0.15);
   box-shadow: 0 0 8px rgba(var(--ios-accent-rgb), 0.4);
 }
 

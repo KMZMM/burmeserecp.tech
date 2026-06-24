@@ -1614,6 +1614,12 @@ if (signUpForm) {
       avatarUrlVal = selectedAvatarUrl;
     }
 
+    // Show progress to prevent double-clicks
+    showProgressModal(
+      currentLang === 'en' ? "Creating Account" : "အကောင့် ဖန်တီးနေသည်",
+      currentLang === 'en' ? "Setting up your profile..." : "သင်၏ပရိုဖိုင်ကို ပြင်ဆင်နေပါသည်..."
+    );
+
     fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1651,7 +1657,9 @@ if (signUpForm) {
 
 function handleSignOut() {
   const confirmMsg = TRANSLATIONS[currentLang]["sign-out-confirm"].replace("{username}", myUsername);
-  if (confirm(confirmMsg)) {
+  const okText = currentLang === 'en' ? "Sign Out" : "ထွက်ရန်";
+  const title = currentLang === 'en' ? "Sign Out" : "အကောင့်ထွက်မည်";
+  showCustomConfirm(title, confirmMsg, okText, () => {
     safeStorage.removeItem("tg_signed_in");
     safeStorage.removeItem("tg_username");
     safeStorage.removeItem("tg_avatar_url");
@@ -1660,7 +1668,7 @@ function handleSignOut() {
     initUserSession();
     
     if (socket) socket.close();
-  }
+  });
 }
 
 if (chatSendButton && chatMessageInput) {

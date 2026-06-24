@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=31" />
+  <link rel="stylesheet" href="styles.css?v=32" />
   <!-- Local auth flow triggers -->
 </head>
 <body>
@@ -75,13 +75,8 @@
         <p class="portal-card-desc">Generate realistic Burmese & multilingual audio from text.</p>
       </div>
       <div class="portal-card" id="goChatBtn">
-        <div class="portal-card-icon chat-icon-bg">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
+        <div class="portal-card-icon chat-icon-bg" style="overflow: hidden; padding: 0; border-radius: 18px;">
+          <img src="images/community_logo.png" alt="Community" style="width: 100%; height: 100%; object-fit: cover; border-radius: 18px;" />
         </div>
         <h2 class="portal-card-title">Burmese Recap Community</h2>
         <p class="portal-card-desc">Join the room, chat, and react with other members.</p>
@@ -215,7 +210,7 @@
             </svg>
           </button>
           <div class="chat-avatar" style="width: 34px; height: 34px; border-radius: 50%; overflow: hidden; border: 0.5px solid var(--ios-border); display: flex; align-items: center; justify-content: center; background: var(--ios-surface); flex-shrink: 0;">
-            <img src="images/logo.jpg" alt="Burmese Recap Community Logo" style="width: 100%; height: 100%; object-fit: cover;" />
+            <img src="images/community_logo.png" alt="Burmese Recap Community Logo" style="width: 100%; height: 100%; object-fit: cover;" />
           </div>
           <div class="chat-meta">
             <div class="chat-title" data-translate="chat-title">BurmeseRecap Community</div>
@@ -494,6 +489,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=31" defer></script>
+  <script src="app.js?v=32" defer></script>
 </body>
 </html>

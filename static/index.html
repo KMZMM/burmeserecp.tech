@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=36" />
+  <link rel="stylesheet" href="styles.css?v=37" />
   <!-- Local auth flow triggers -->
 </head>
 <body>
@@ -489,6 +489,12 @@
     </div>
   </div>
 
-  <script src="app.js?v=36" defer></script>
+  <!-- Premium Media Viewer Modal -->
+  <div class="ios-modal-overlay" id="mediaViewerModal" style="display: none; z-index: 3000; background: rgba(0,0,0,0.95);">
+    <button class="media-viewer-close" id="mediaViewerCloseBtn" aria-label="Close viewer">&times;</button>
+    <div class="media-viewer-content" id="mediaViewerContent"></div>
+  </div>
+
+  <script src="app.js?v=37" defer></script>
 </body>
 </html>

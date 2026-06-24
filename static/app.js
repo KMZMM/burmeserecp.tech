@@ -1135,17 +1135,50 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
         bubble.classList.add('msg-bubble-has-attachment');
         const attachDiv = document.createElement('div');
         
+        // Reserve aspect ratio space to prevent layout jumps on all clients
+        if (attachment.width && attachment.height) {
+          attachDiv.style.setProperty('--aspect-ratio', `${attachment.width} / ${attachment.height}`);
+          attachDiv.style.aspectRatio = `${attachment.width} / ${attachment.height}`;
+          attachDiv.style.width = "100%";
+        }
+
+        // Apply media-only styling for zero padding (Telegram-style image/video bubbles)
+        const isMedia = attachment.content_type && (attachment.content_type.startsWith("image/") || attachment.content_type.startsWith("video/"));
+        if (isMedia && (!text || text.trim() === '')) {
+          bubble.classList.add('msg-bubble-media-only');
+        }
+
         if (attachment.content_type && attachment.content_type.startsWith("image/")) {
           attachDiv.className = "msg-bubble-media";
           attachDiv.innerHTML = `<img src="${attachment.url}" alt="${attachment.filename || 'Image'}" loading="lazy" />`;
           attachDiv.addEventListener('click', (e) => {
             e.stopPropagation();
-            window.open(attachment.url, '_blank');
+            openMediaViewer(attachment.url, 'image');
           });
         } else if (attachment.content_type && attachment.content_type.startsWith("video/")) {
           attachDiv.className = "msg-video-player";
           attachDiv.innerHTML = `<video src="${attachment.url}" controls preload="metadata" playsinline></video>`;
-          attachDiv.addEventListener('click', (e) => e.stopPropagation());
+          attachDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openMediaViewer(attachment.url, 'video');
+          });
+        } else if (attachment.content_type && attachment.content_type.startsWith("audio/")) {
+          // Play inside bottom mini player using the pre-existing audio studio UI
+          attachDiv.className = "msg-audio-card";
+          const sizeMB = attachment.size ? (attachment.size / 1024 / 1024).toFixed(1) + " MB" : "Audio";
+          attachDiv.innerHTML = `
+            <div class="audio-play-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #ffffff; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </div>
+            <div class="audio-info">
+              <div class="audio-name">${attachment.filename || 'Audio Attachment'}</div>
+              <div class="audio-duration-size">${sizeMB} • Audio</div>
+            </div>
+          `;
+          attachDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playAudioInMiniPlayer(attachment.url, attachment.filename || 'Audio Attachment', sender);
+          });
         } else {
           attachDiv.style.display = "contents";
           const sizeMB = attachment.size ? (attachment.size / 1024 / 1024).toFixed(1) + " MB" : "File";
@@ -1354,6 +1387,10 @@ function connectWebSocket() {
           const localBubble = chatMessages.querySelector(`[data-msg-id="${message.tempId}"]`);
           if (localBubble) {
             if (message.attachment && message.attachment.url) {
+              // Revoke Object URL now that broadcast has arrived and we are replacing it
+              if (localBubble.dataset.previewUrl) {
+                URL.revokeObjectURL(localBubble.dataset.previewUrl);
+              }
               // Replace temporary upload preview bubble with final rendered element
               const newMsg = buildMessageElement(message.sender, message.text, isSelf, message.avatarBg, 'message', message.avatar_url, message.message_id, message.reactions, message.attachment);
               localBubble.replaceWith(newMsg);
@@ -1826,9 +1863,48 @@ function populateEmojiPicker() {
   isEmojiPickerPopulated = true;
 }
 
+// Dimension helper promises to calculate layout aspect ratios before uploading
+function getImageDimensions(file) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) {
+      resolve(null);
+      return;
+    }
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      const dims = { width: img.width, height: img.height };
+      URL.revokeObjectURL(img.src);
+      resolve(dims);
+    };
+    img.onerror = () => {
+      resolve(null);
+    };
+  });
+}
+
+function getVideoDimensions(file) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("video/")) {
+      resolve(null);
+      return;
+    }
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = URL.createObjectURL(file);
+    video.onloadedmetadata = () => {
+      const dims = { width: video.videoWidth, height: video.videoHeight };
+      URL.revokeObjectURL(video.src);
+      resolve(dims);
+    };
+    video.onerror = () => {
+      resolve(null);
+    };
+  });
+}
+
 // Chat Attachment Upload and Progress Tracker Logic
-// Chat Attachment Upload and Progress Tracker Logic
-function uploadChatAttachment(file) {
+function uploadChatAttachment(file, dims = null) {
   if (!socket || socket.readyState !== WebSocket.OPEN || !isUserSignedIn) return;
 
   if (file.size > 50 * 1024 * 1024) {
@@ -1848,38 +1924,42 @@ function uploadChatAttachment(file) {
 
   let previewUrl = null;
   let attachmentHTML = "";
+  let aspectStyle = "";
+  if (dims && dims.width && dims.height) {
+    aspectStyle = `aspect-ratio: ${dims.width} / ${dims.height}; width: 100%;`;
+  }
 
   if (file.type.startsWith("image/")) {
     previewUrl = URL.createObjectURL(file);
     attachmentHTML = `
-      <div class="msg-bubble msg-bubble-has-attachment">
-        <div class="msg-bubble-media" style="position:relative; margin-bottom: 0;">
-          <img src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain;" />
+      <div class="msg-bubble msg-bubble-has-attachment msg-bubble-media-only">
+        <div class="msg-bubble-media" style="position:relative; margin-bottom: 0; ${aspectStyle}">
+          <img src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain; ${aspectStyle}" />
           <div class="upload-progress-overlay">
             <div class="progress-spinner"></div>
             <div class="progress-text">0.0 / ${(file.size / 1024 / 1024).toFixed(1)} MB (0%)</div>
           </div>
         </div>
-        <div class="msg-time">
-          <span>${timeStr}</span>
-          <span class="msg-status-ticks">...</span>
+        <div class="msg-time" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.5); color: #ffffff !important; padding: 2px 6px; border-radius: 10px; font-size: 9.5px; backdrop-filter: blur(4px); display: inline-flex; align-items: center; gap: 3px; z-index: 2; margin: 0 !important; border: none !important;">
+          <span style="color: #ffffff !important;">${timeStr}</span>
+          <span class="msg-status-ticks" style="color: rgba(255, 255, 255, 0.8) !important; font-size: 9.5px;">...</span>
         </div>
       </div>
     `;
   } else if (file.type.startsWith("video/")) {
     previewUrl = URL.createObjectURL(file);
     attachmentHTML = `
-      <div class="msg-bubble msg-bubble-has-attachment">
-        <div class="msg-video-player" style="position:relative; margin-bottom: 0;">
-          <video src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain;" muted></video>
+      <div class="msg-bubble msg-bubble-has-attachment msg-bubble-media-only">
+        <div class="msg-video-player" style="position:relative; margin-bottom: 0; ${aspectStyle}">
+          <video src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain; ${aspectStyle}" muted></video>
           <div class="upload-progress-overlay">
             <div class="progress-spinner"></div>
             <div class="progress-text">0.0 / ${(file.size / 1024 / 1024).toFixed(1)} MB (0%)</div>
           </div>
         </div>
-        <div class="msg-time">
-          <span>${timeStr}</span>
-          <span class="msg-status-ticks">...</span>
+        <div class="msg-time" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.5); color: #ffffff !important; padding: 2px 6px; border-radius: 10px; font-size: 9.5px; backdrop-filter: blur(4px); display: inline-flex; align-items: center; gap: 3px; z-index: 2; margin: 0 !important; border: none !important;">
+          <span style="color: #ffffff !important;">${timeStr}</span>
+          <span class="msg-status-ticks" style="color: rgba(255, 255, 255, 0.8) !important; font-size: 9.5px;">...</span>
         </div>
       </div>
     `;
@@ -1967,7 +2047,9 @@ function uploadChatAttachment(file) {
             url: data.download_url,
             filename: file.name,
             content_type: file.type,
-            size: file.size
+            size: file.size,
+            width: dims ? dims.width : undefined,
+            height: dims ? dims.height : undefined
           }
         };
         socket.send(JSON.stringify(payload));
@@ -2032,11 +2114,22 @@ if (emojiTrigger && emojiPicker) {
       chatFileInput.click();
     });
 
-    chatFileInput.addEventListener("change", () => {
+    chatFileInput.addEventListener("change", async () => {
       const files = chatFileInput.files;
       if (files && files.length > 0) {
         for (let i = 0; i < files.length; i++) {
-          uploadChatAttachment(files[i]);
+          const file = files[i];
+          let dims = null;
+          try {
+            if (file.type.startsWith("image/")) {
+              dims = await getImageDimensions(file);
+            } else if (file.type.startsWith("video/")) {
+              dims = await getVideoDimensions(file);
+            }
+          } catch (e) {
+            console.error("Failed to parse file dimensions:", e);
+          }
+          uploadChatAttachment(file, dims);
         }
       }
       chatFileInput.value = "";
@@ -2142,4 +2235,82 @@ if (!hasSeenPlans) {
 // Scroll to bottom of chat on page load
 if (chatMessages) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// ===== Premium Centered Media Viewer Controls =====
+function openMediaViewer(src, type) {
+  const modal = document.getElementById("mediaViewerModal");
+  const content = document.getElementById("mediaViewerContent");
+  if (!modal || !content) return;
+  
+  content.innerHTML = "";
+  if (type === "image") {
+    content.innerHTML = `<img src="${src}" alt="Preview" />`;
+  } else if (type === "video") {
+    content.innerHTML = `<video src="${src}" controls autoplay playsinline></video>`;
+  }
+  
+  modal.style.display = "flex";
+  setTimeout(() => modal.classList.add("active"), 10);
+}
+
+function closeMediaViewer() {
+  const modal = document.getElementById("mediaViewerModal");
+  if (!modal) return;
+  modal.classList.remove("active");
+  setTimeout(() => {
+    modal.style.display = "none";
+    const content = document.getElementById("mediaViewerContent");
+    if (content) content.innerHTML = "";
+  }, 250);
+}
+
+const mediaViewerModal = document.getElementById("mediaViewerModal");
+const mediaViewerCloseBtn = document.getElementById("mediaViewerCloseBtn");
+if (mediaViewerCloseBtn) {
+  mediaViewerCloseBtn.addEventListener("click", closeMediaViewer);
+}
+if (mediaViewerModal) {
+  mediaViewerModal.addEventListener("click", (e) => {
+    if (e.target === mediaViewerModal) {
+      closeMediaViewer();
+    }
+  });
+}
+
+// ===== Play Audio in pre-existing bottom Now Playing bar (Mini Player) =====
+function playAudioInMiniPlayer(url, filename, sender) {
+  if (!audioPlayer || !miniPlayer) return;
+  
+  // Toggle play/pause if same URL is playing/paused
+  if (audioPlayer.src === url) {
+    if (audioPlayer.paused) {
+      audioPlayer.play().catch(err => console.error(err));
+    } else {
+      audioPlayer.pause();
+    }
+    return;
+  }
+  
+  audioPlayer.src = url;
+  if (downloadLink) {
+    downloadLink.href = url;
+    downloadLink.classList.remove("disabled");
+  }
+  
+  if (miniTitle) miniTitle.textContent = filename;
+  if (miniSub) miniSub.textContent = sender;
+  
+  miniPlayer.style.display = "block";
+  miniPlayer.classList.remove("generating"); // Ensure not hidden by generating mode
+  
+  const bars = document.getElementById("miniBars");
+  if (bars) bars.style.display = "flex";
+  
+  audioPlayer.load();
+  audioPlayer.play().catch(err => console.error("Audio playback failed:", err));
+  
+  if (statusPill) {
+    statusPill.textContent = TRANSLATIONS[currentLang]["audio-ready"] || "Playing";
+  }
 }

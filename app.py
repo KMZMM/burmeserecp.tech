@@ -401,6 +401,8 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC)")
         conn.commit()
     else:
         cursor.execute("""
@@ -423,6 +425,8 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC)")
         conn.commit()
     
     # Run database migrations for older deployments to add reactions/attachment columns safely

@@ -82,6 +82,13 @@ def check_and_update_db_status():
 
 def get_db_connection():
     try:
+        # Check environment variable first (production on DO App Platform)
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url:
+            import psycopg2
+            return psycopg2.connect(db_url, connect_timeout=3), "postgres"
+
+        # Fallback to local credentials JSON file (for local dev)
         if os.path.exists(CREDS_PATH):
             with open(CREDS_PATH, "r") as f:
                 creds = json.load(f)

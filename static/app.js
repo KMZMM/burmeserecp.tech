@@ -1857,7 +1857,7 @@ function uploadChatAttachment(file) {
           <img src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain;" />
           <div class="upload-progress-overlay">
             <div class="progress-spinner"></div>
-            <div class="progress-text">0%</div>
+            <div class="progress-text">0.0 / ${(file.size / 1024 / 1024).toFixed(1)} MB (0%)</div>
           </div>
         </div>
         <div class="msg-time">
@@ -1874,7 +1874,7 @@ function uploadChatAttachment(file) {
           <video src="${previewUrl}" style="filter: blur(8px); width: 100%; height: auto; max-height: 360px; object-fit: contain;" muted></video>
           <div class="upload-progress-overlay">
             <div class="progress-spinner"></div>
-            <div class="progress-text">0%</div>
+            <div class="progress-text">0.0 / ${(file.size / 1024 / 1024).toFixed(1)} MB (0%)</div>
           </div>
         </div>
         <div class="msg-time">
@@ -1895,7 +1895,7 @@ function uploadChatAttachment(file) {
           </div>
           <div class="upload-progress-overlay">
             <div class="progress-spinner"></div>
-            <div class="progress-text">0%</div>
+            <div class="progress-text">0.0 / ${(file.size / 1024 / 1024).toFixed(1)} MB (0%)</div>
           </div>
         </div>
         <div class="msg-time">
@@ -1939,8 +1939,10 @@ function uploadChatAttachment(file) {
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
         const percent = Math.round((e.loaded / e.total) * 100);
+        const uploadedMB = (e.loaded / 1024 / 1024).toFixed(1);
+        const totalMB = (e.total / 1024 / 1024).toFixed(1);
         if (progressTextEl) {
-          progressTextEl.textContent = percent + "%";
+          progressTextEl.textContent = `${uploadedMB} / ${totalMB} MB (${percent}%)`;
         }
       }
     };

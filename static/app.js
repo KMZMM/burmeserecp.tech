@@ -2393,7 +2393,7 @@ if (chatAttachBtn && attachMenu) {
       openAuthModal();
       return;
     }
-    const isHidden = attachMenu.style.display === "none";
+    const isHidden = attachMenu.style.display === "none" || !attachMenu.style.display;
     attachMenu.style.display = isHidden ? "flex" : "none";
   });
 

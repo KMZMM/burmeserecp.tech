@@ -1225,6 +1225,7 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
 function appendChatMessage(sender, text, isSelf, avatarBg = '', type = 'message', avatarUrl = '', messageId = '', reactions = {}, attachment = {}, tempId = '') {
   if (!chatMessages) return;
   const msgDiv = buildMessageElement(sender, text, isSelf, avatarBg, type, avatarUrl, messageId, reactions, attachment, tempId);
+  msgDiv.classList.add('new-message'); // Bouncy slide-up animation for real-time messages!
   // Remove empty-state placeholder if present before appending first real message
   const emptyState = chatMessages.querySelector('.chat-empty-state, [data-empty-state]');
   if (emptyState) emptyState.remove();
@@ -1920,7 +1921,7 @@ function uploadChatAttachment(file, dims = null) {
 
   const msgDiv = document.createElement("div");
   msgDiv.setAttribute("data-msg-id", tempId); // Critical to match it later!
-  msgDiv.className = "chat-message sent";
+  msgDiv.className = "chat-message sent new-message";
 
   let previewUrl = null;
   let attachmentHTML = "";

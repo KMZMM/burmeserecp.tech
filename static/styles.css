@@ -1434,6 +1434,12 @@ body[data-theme="light"] .moon-icon {
   font-size: 12px;
   font-weight: 500;
   min-height: 16px;
+  margin-top: -6px;
+  margin-bottom: -6px;
+}
+
+.auth-error-msg:empty {
+  display: none;
 }
 
 /* Preset Avatar Selection Grid */
@@ -2748,6 +2754,10 @@ body[data-theme="light"] .moon-icon {
 
 .ios-modal .form-desc {
   margin-bottom: 6px !important;
+}
+
+.ios-modal .modal-body .ios-btn {
+  margin-top: 4px !important;
 }
 
 .ios-modal .ios-segmented-control {

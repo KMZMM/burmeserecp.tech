@@ -1320,6 +1320,7 @@ let selectedAvatarUrl = PRESET_AVATARS[0];
 
 function openAuthModal() {
   if (authModal) {
+    switchTab("signin");
     authModal.style.display = "flex";
     signInError.textContent = "";
     signUpError.textContent = "";

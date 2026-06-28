@@ -8,7 +8,8 @@ const INITIAL_ANNOUNCEMENTS = [
 const INITIAL_BUSINESSES = [
     { id: 1, name: "Oakwood Brews", category: "Dining", desc: "A cozy neighborhood cafe offering specialty coffees, artisan tea, and freshly baked pastries.", contact: "102 Main Street | (555) 0192" },
     { id: 2, name: "Valley Outfitters", category: "Shopping", desc: "Premium gear and clothing for hiking, camping, and enjoying the great outdoors in Oakwood.", contact: "45 Alpine Way | (555) 4382" },
-    { id: 3, name: "Spruce Street Auto Clinic", category: "Automotive", desc: "Reliable, community-trusted car maintenance, repairs, and diagnostics. Family-owned since 1998.", contact: "304 Spruce Street | (555) 8931" }
+    { id: 3, name: "Spruce Street Auto Clinic", category: "Automotive", desc: "Reliable, community-trusted car maintenance, repairs, and diagnostics. Family-owned since 1998.", contact: "304 Spruce Street | (555) 8931" },
+    { id: 4, name: "Valley Quick Dash Courier", category: "Delivery", desc: "Reliable local delivery service for groceries, retail goods, packages, and custom errands. Fast service within Oakwood Valley.", contact: "Call/SMS: (555) 9982", image: "images/delivery.png" }
 ];
 
 const INITIAL_EVENTS = [
@@ -335,6 +336,7 @@ class TownHubApp {
 
         this.directoryGrid.innerHTML = filtered.map(b => `
             <div class="card">
+                ${b.image ? `<img src="${b.image}" alt="${b.name}" style="width:100%; height:160px; object-fit:cover; border-radius:var(--radius-sm); margin-bottom:0.5rem;">` : ''}
                 <span class="card-tag" style="background:var(--accent-teal-glow); color:var(--accent-teal);">${b.category}</span>
                 <h4 class="card-title">${b.name}</h4>
                 <p class="card-desc">${b.desc}</p>

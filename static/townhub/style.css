@@ -236,10 +236,10 @@ nav a:hover, nav a.active {
 /* App Hero / Landing Banner */
 .hero-section {
     position: relative;
-    padding: 4rem 2rem 3rem;
+    padding: 6rem 2rem 5rem;
     text-align: center;
-    background: radial-gradient(circle at top right, var(--primary-glow), transparent 45%),
-                radial-gradient(circle at bottom left, var(--accent-teal-glow), transparent 45%);
+    background: linear-gradient(rgba(11, 15, 25, 0.75), rgba(11, 15, 25, 0.85)), url('images/hero.png') no-repeat center center;
+    background-size: cover;
     border-bottom: 1px solid var(--border-color);
 }
 

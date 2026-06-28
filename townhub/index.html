@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TownHub - Connected Community Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome Icons for modern aesthetic -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="header-container">
+            <a href="#" class="logo-section">
+                <div class="logo-icon"><i class="fa-solid fa-mountain-city"></i></div>
+                <div class="logo-text">Town<span>Hub</span></div>
+            </a>
+            
+            <nav id="main-nav">
+                <a class="nav-link active" data-view="dashboard"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
+                <a class="nav-link" data-view="directory"><i class="fa-solid fa-store"></i> Directory</a>
+                <a class="nav-link" data-view="events"><i class="fa-solid fa-calendar-days"></i> Events</a>
+                <a class="nav-link" data-view="issues"><i class="fa-solid fa-triangle-exclamation"></i> City Hall</a>
+                <a class="nav-link" data-view="marketplace"><i class="fa-solid fa-tags"></i> Classifieds</a>
+            </nav>
+
+            <div class="header-actions">
+                <button class="theme-toggle" id="theme-toggle-btn" aria-label="Toggle Theme">
+                    <i class="fa-solid fa-sun"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <h1 class="hero-title" id="hero-welcome">Welcome to Oakwood Valley</h1>
+        <p class="hero-subtitle">Your central digital hub for local events, business directories, neighborhood announcements, and civic engagement.</p>
+    </section>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Sidebar Widgets -->
+        <aside class="sidebar">
+            <!-- Weather Widget -->
+            <div class="widget">
+                <h3 class="widget-title"><i class="fa-solid fa-cloud-sun"></i> Local Weather</h3>
+                <div class="weather-info">
+                    <div class="weather-temp" id="weather-temp">72°F</div>
+                    <div class="weather-details">
+                        <div id="weather-cond">Partly Cloudy</div>
+                        <div>Oakwood Valley</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Community Stats Widget -->
+            <div class="widget">
+                <h3 class="widget-title"><i class="fa-solid fa-users"></i> Hub Vitality</h3>
+                <div class="stat-item">
+                    <span>Registered Businesses</span>
+                    <span class="stat-value" id="stat-businesses">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Upcoming Events</span>
+                    <span class="stat-value" id="stat-events">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Reported Issues</span>
+                    <span class="stat-value" id="stat-issues">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Marketplace Deals</span>
+                    <span class="stat-value" id="stat-marketplace">0</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <section class="content-area">
+
+            <!-- 1. DASHBOARD VIEW -->
+            <div id="dashboard-view" class="view-section active">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3 class="widget-title"><i class="fa-solid fa-bullhorn"></i> Town Announcements</h3>
+                        <div class="announcement-list" id="announcements-list">
+                            <!-- Announcements dynamically rendered here -->
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <h3 class="widget-title"><i class="fa-solid fa-circle-info"></i> Quick Actions & Links</h3>
+                        <div class="announcement-list">
+                            <div class="announcement-item" style="border-left-color: var(--accent-teal);">
+                                <strong>Need to report a problem?</strong>
+                                <p>Submit potholes, lighting issues, and park cleanups to the Virtual City Hall.</p>
+                                <button class="btn btn-secondary btn-sm nav-link" data-view="issues" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem;">Go to City Hall</button>
+                            </div>
+                            <div class="announcement-item" style="border-left-color: var(--primary);">
+                                <strong>Support Local Shop owners</strong>
+                                <p>Discover boutique dining and stores right here in Oakwood Valley.</p>
+                                <button class="btn btn-secondary btn-sm nav-link" data-view="directory" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem;">Explore Directory</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. DIRECTORY VIEW -->
+            <div id="directory-view" class="view-section">
+                <div class="filter-bar">
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" class="search-input" id="directory-search" placeholder="Search businesses, shops, restaurants...">
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-business"><i class="fa-solid fa-plus"></i> Register Business</button>
+                </div>
+                <div class="cards-grid" id="directory-grid">
+                    <!-- Directory cards dynamically rendered here -->
+                </div>
+            </div>
+
+            <!-- 3. EVENTS VIEW -->
+            <div id="events-view" class="view-section">
+                <div class="filter-bar">
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" class="search-input" id="events-search" placeholder="Search upcoming local events...">
+                    </div>
+                    <button class="btn btn-primary" id="btn-host-event"><i class="fa-solid fa-plus"></i> Host Event</button>
+                </div>
+                <div class="cards-grid" id="events-grid">
+                    <!-- Event cards dynamically rendered here -->
+                </div>
+            </div>
+
+            <!-- 4. CIVIC ISSUES VIEW (CITY HALL) -->
+            <div id="issues-view" class="view-section">
+                <div class="filter-bar">
+                    <div class="filter-tabs" id="issues-filter-tabs">
+                        <button class="filter-tab active" data-filter="all">All Issues</button>
+                        <button class="filter-tab" data-filter="open">Open</button>
+                        <button class="filter-tab" data-filter="review">Under Review</button>
+                        <button class="filter-tab" data-filter="resolved">Resolved</button>
+                    </div>
+                    <button class="btn btn-primary" id="btn-report-issue"><i class="fa-solid fa-triangle-exclamation"></i> Report Issue</button>
+                </div>
+                <div class="cards-grid" id="issues-grid">
+                    <!-- Issue cards dynamically rendered here -->
+                </div>
+            </div>
+
+            <!-- 5. MARKETPLACE VIEW -->
+            <div id="marketplace-view" class="view-section">
+                <div class="filter-bar">
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" class="search-input" id="marketplace-search" placeholder="Search classifieds & deals...">
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-item"><i class="fa-solid fa-plus"></i> Post Classified</button>
+                </div>
+                <div class="cards-grid" id="marketplace-grid">
+                    <!-- Marketplace cards dynamically rendered here -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>&copy; 2026 TownHub Portal. Built for the community of Oakwood Valley.</p>
+    </footer>
+
+    <!-- MODAL 1: REGISTER BUSINESS -->
+    <div class="modal-overlay" id="modal-business">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Register Local Business</h2>
+                <button class="modal-close" data-close="modal-business">&times;</button>
+            </div>
+            <form id="form-business">
+                <div class="form-group">
+                    <label class="form-label">Business Name</label>
+                    <input type="text" class="form-control" name="name" required placeholder="e.g. Oakwood Brews">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <input type="text" class="form-control" name="category" required placeholder="e.g. Dining, Shopping, Automotive">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="desc" required placeholder="Short bio of your business..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contact / Address</label>
+                    <input type="text" class="form-control" name="contact" required placeholder="e.g. 104 Main St or (555) 123-4567">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: HOST EVENT -->
+    <div class="modal-overlay" id="modal-event">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Host Community Event</h2>
+                <button class="modal-close" data-close="modal-event">&times;</button>
+            </div>
+            <form id="form-event">
+                <div class="form-group">
+                    <label class="form-label">Event Title</label>
+                    <input type="text" class="form-control" name="title" required placeholder="e.g. Farmers Market Saturday">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date & Time</label>
+                    <input type="text" class="form-control" name="date" required placeholder="e.g. July 5th, 9:00 AM">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <input type="text" class="form-control" name="location" required placeholder="e.g. Community Park Center">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="desc" required placeholder="Detail the event activities..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Event</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: REPORT ISSUE -->
+    <div class="modal-overlay" id="modal-issue">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Virtual Civic Desk</h2>
+                <button class="modal-close" data-close="modal-issue">&times;</button>
+            </div>
+            <form id="form-issue">
+                <div class="form-group">
+                    <label class="form-label">Issue Title</label>
+                    <input type="text" class="form-control" name="title" required placeholder="e.g. Broken streetlight on Spruce St">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Location / Address</label>
+                    <input type="text" class="form-control" name="location" required placeholder="e.g. Corner of Elm and 4th">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Details / Description</label>
+                    <textarea class="form-control" name="desc" required placeholder="Provide detail to help city workers address it..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Report</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: POST CLASSIFIED -->
+    <div class="modal-overlay" id="modal-item">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Post to Classifieds</h2>
+                <button class="modal-close" data-close="modal-item">&times;</button>
+            </div>
+            <form id="form-item">
+                <div class="form-group">
+                    <label class="form-label">Item / Deal Title</label>
+                    <input type="text" class="form-control" name="title" required placeholder="e.g. Moving Sale: Solid Oak Dining Table">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Price / Offer</label>
+                    <input type="text" class="form-control" name="price" required placeholder="e.g. $150 or Free">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="desc" required placeholder="Condition, dimensions, or details..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Seller Contact</label>
+                    <input type="text" class="form-control" name="contact" required placeholder="e.g. Call/Text 555-9876">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Publish Listing</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Core App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

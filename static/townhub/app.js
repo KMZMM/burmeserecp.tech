@@ -163,6 +163,7 @@ class TownHubApp {
         document.getElementById('form-event').addEventListener('submit', (e) => this.handleNewEvent(e));
         document.getElementById('form-issue').addEventListener('submit', (e) => this.handleNewIssue(e));
         document.getElementById('form-item').addEventListener('submit', (e) => this.handleNewItem(e));
+        document.getElementById('form-delivery').addEventListener('submit', (e) => this.handleNewDelivery(e));
     }
 
     // Toggle Theme Light / Dark
@@ -408,6 +409,69 @@ class TownHubApp {
                 </div>
             </div>
         `).join('');
+    }
+
+    handleNewDelivery(e) {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const pickup = data.get('pickup');
+        const dropoff = data.get('dropoff');
+        const details = data.get('details');
+        
+        e.target.reset();
+        this.startDeliverySimulation(pickup, dropoff, details);
+    }
+
+    startDeliverySimulation(pickup, dropoff, details) {
+        const container = document.getElementById('delivery-tracker-container');
+        let step = 0;
+        const steps = [
+            { title: "Finding Nearest Courier", icon: "fa-search", desc: "Checking availability of local cargo riders...", progress: 10, status: "finding" },
+            { title: "Courier Heading to Pickup", icon: "fa-user-check", desc: "Rider Dave (Valley Quick Dash) accepted the order & is moving to pickup location.", progress: 35, status: "heading" },
+            { title: "Package Picked Up", icon: "fa-box-open", desc: "Rider Dave has collected your package: '" + details + "'. Heading to dropoff.", progress: 65, status: "transit" },
+            { title: "Delivered", icon: "fa-circle-check", desc: "Order delivered successfully to " + dropoff + "! Thank you for supporting local courier networks.", progress: 100, status: "delivered" }
+        ];
+
+        const updateUI = () => {
+            const current = steps[step];
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; animation: fadeIn 0.4s ease-out;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div class="theme-toggle" style="background: var(--primary-glow); border-color: var(--primary); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--primary);">
+                            <i class="fa-solid ${current.icon} ${current.status !== 'delivered' ? 'fa-beat' : ''}"></i>
+                        </div>
+                        <div>
+                            <h4 style="font-weight: 700; color: var(--text-primary);">${current.title}</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">${current.desc}</p>
+                        </div>
+                    </div>
+
+                    <!-- Animated Progress Bar -->
+                    <div style="background: var(--border-color); height: 8px; border-radius: 4px; overflow: hidden; position: relative;">
+                        <div style="background: linear-gradient(90deg, var(--primary), var(--accent-teal)); width: ${current.progress}%; height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px;"></div>
+                    </div>
+
+                    <!-- Transit Mock Route Animation -->
+                    <div style="background: rgba(0,0,0,0.15); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-muted);">Pickup</span>
+                            <span style="font-weight: 500;">${pickup}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-muted);">Dropoff</span>
+                            <span style="font-weight: 500;">${dropoff}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (step < steps.length - 1) {
+                step++;
+                setTimeout(updateUI, 4000);
+            }
+        };
+
+        updateUI();
     }
 }
 

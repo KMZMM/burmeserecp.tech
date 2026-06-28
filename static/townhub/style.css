@@ -708,3 +708,69 @@ footer {
         font-size: 2.25rem;
     }
 }
+
+/* Custom Web Animations & Enhancements */
+.announcement-item.alert {
+    animation: pulseBorder 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseBorder {
+    0%, 100% {
+        border-left-color: var(--danger);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.1);
+    }
+    50% {
+        border-left-color: var(--accent-pink);
+        box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.25);
+    }
+}
+
+/* Card hover glow and dynamic scaling */
+.card {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                box-shadow 0.4s ease, 
+                border-color 0.4s ease;
+}
+
+.card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 12px 24px -10px var(--primary-glow), 0 4px 20px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Smooth Navigation Underline effect */
+nav a {
+    position: relative;
+    overflow: hidden;
+}
+
+nav a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent-teal));
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+nav a:hover::after, nav a.active::after {
+    width: 80%;
+}
+
+/* Pulsing rings for icons */
+.fa-beat {
+    animation: fa-beat 1.5s infinite linear;
+}
+
+@keyframes fa-beat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.18);
+        filter: drop-shadow(0 0 4px var(--primary));
+    }
+}
+

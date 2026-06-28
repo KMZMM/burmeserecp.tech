@@ -24,6 +24,7 @@
                 <a class="nav-link" data-view="events"><i class="fa-solid fa-calendar-days"></i> Events</a>
                 <a class="nav-link" data-view="issues"><i class="fa-solid fa-triangle-exclamation"></i> City Hall</a>
                 <a class="nav-link" data-view="marketplace"><i class="fa-solid fa-tags"></i> Classifieds</a>
+                <a class="nav-link" data-view="delivery"><i class="fa-solid fa-truck-ramp-box"></i> Delivery Desk</a>
             </nav>
 
             <div class="header-actions">
@@ -164,6 +165,42 @@
                 </div>
                 <div class="cards-grid" id="marketplace-grid">
                     <!-- Marketplace cards dynamically rendered here -->
+                </div>
+            </div>
+
+            <!-- 6. DELIVERY VIEW -->
+            <div id="delivery-view" class="view-section">
+                <div class="dashboard-grid">
+                    <!-- Delivery Booking Form -->
+                    <div class="dashboard-card">
+                        <h3 class="widget-title"><i class="fa-solid fa-paper-plane"></i> Book a Local Courier</h3>
+                        <form id="form-delivery">
+                            <div class="form-group">
+                                <label class="form-label">Pickup Address</label>
+                                <input type="text" class="form-control" name="pickup" required placeholder="e.g. 102 Main Street (Oakwood Brews)">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Dropoff Address</label>
+                                <input type="text" class="form-control" name="dropoff" required placeholder="e.g. 142 Spruce Street">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Package Description & Weight</label>
+                                <input type="text" class="form-control" name="details" required placeholder="e.g. Medium box of hot coffee & donuts, 3 lbs">
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-truck-fast"></i> Schedule Delivery</button>
+                        </form>
+                    </div>
+
+                    <!-- Delivery Tracker Display -->
+                    <div class="dashboard-card">
+                        <h3 class="widget-title"><i class="fa-solid fa-map-location-dot"></i> Live Tracker Desk</h3>
+                        <div id="delivery-tracker-container">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fa-solid fa-truck-bolt fa-3x" style="color: var(--border-color-focus); margin-bottom: 1rem;"></i>
+                                <p>No active delivery requests. Schedule a delivery on the left to see the interactive tracker.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

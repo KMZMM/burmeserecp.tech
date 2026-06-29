@@ -2733,9 +2733,23 @@ function uploadChatAttachment(file, dims = null) {
 if (emojiTrigger && emojiPicker) {
   // Render trigger icon using the high-quality animated WebP emoji
   emojiTrigger.innerHTML = getEmojiHTML("😊", 20);
-  
-  const attachTrigger = document.querySelector(".attach-trigger");
-  const chatAttachBtn = document.getElementById("chatAttachBtn");
+
+  emojiTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    populateEmojiPicker();
+    const isHidden = emojiPicker.style.display === "none" || !emojiPicker.style.display;
+    emojiPicker.style.display = isHidden ? "block" : "none";
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!emojiPicker.contains(e.target) && !emojiTrigger.contains(e.target)) {
+      emojiPicker.style.display = "none";
+    }
+  });
+}
+
+// ===== Chat Attachment Button Logic (independent of emoji picker) =====
+const chatAttachBtn = document.getElementById("chatAttachBtn");
 const attachMenu = document.getElementById("attachMenu");
 const attachMediaBtn = document.getElementById("attachMediaBtn");
 const attachFileBtn = document.getElementById("attachFileBtn");
@@ -2803,7 +2817,7 @@ if (chatAttachBtn && attachMenu) {
     chatDocumentInput.addEventListener("change", () => handleFileChange(chatDocumentInput));
   }
 }
-}
+
 
 // ===== Premium Centered Media Viewer Controls =====
 function openMediaViewer(src, type) {

@@ -116,7 +116,7 @@ async def add_no_cache_headers(request: Request, call_next):
     return response
 
 DB_PATH = "users.db"
-CREDS_PATH = "C:/Users/HP/.gemini/antigravity/brain/47446197-b7fd-43a6-a29d-da44be16af0f/scratch/infrastructure_credentials.json"
+CREDS_PATH = os.path.join(os.path.dirname(__file__), "infrastructure_credentials.json")
 
 PLAN_CREDITS_LIMITS = {
     "Free": 10000,
@@ -589,8 +589,8 @@ async def text_to_speech(payload: TTSRequest, user: dict = Depends(get_current_u
             raise HTTPException(status_code=500, detail="Gemini API Key is not configured on the server.")
 
         voice_name = payload.voice.replace("gemini-", "")
-        url = "https://yansd666.com/v1beta/models/gemini-2.5-pro-preview-tts:generateContent"
-        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key={api_key}"
+        headers = {"Content-Type": "application/json"}
         req_body = {
             "contents": [{"parts": [{"text": payload.text.strip()}]}],
             "generationConfig": {

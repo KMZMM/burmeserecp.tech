@@ -1758,6 +1758,11 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
           e.stopPropagation();
           showContextMenu(e, messageId, isSelf);
         });
+
+        bubble.addEventListener('contextmenu', (e) => {
+          e.stopPropagation();
+          showContextMenu(e, messageId, isSelf);
+        });
       }
     }
   }
@@ -1951,6 +1956,10 @@ function connectWebSocket() {
                   renderHoverReactions(bubbleEl, message.message_id);
                 }
                 bubbleEl.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  showContextMenu(e, message.message_id, true);
+                });
+                bubbleEl.addEventListener('contextmenu', (e) => {
                   e.stopPropagation();
                   showContextMenu(e, message.message_id, true);
                 });
@@ -2770,6 +2779,14 @@ if (emojiTrigger && emojiPicker) {
   document.addEventListener("click", (e) => {
     if (!emojiPicker.contains(e.target) && !emojiTrigger.contains(e.target)) {
       emojiPicker.style.display = "none";
+    }
+  });
+
+  // Close custom context menu on click outside
+  document.addEventListener("click", (e) => {
+    const contextMenu = document.querySelector('.tg-context-menu');
+    if (contextMenu && !contextMenu.contains(e.target)) {
+      contextMenu.remove();
     }
   });
 }

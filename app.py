@@ -783,6 +783,12 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
 
             msg_id = str(uuid.uuid4())
             attachment_data = data.get("attachment", {}) if isinstance(data, dict) else {}
+            if not isinstance(attachment_data, dict):
+                attachment_data = {}
+            reply_to = data.get("reply_to") if isinstance(data, dict) else None
+            if reply_to:
+                attachment_data["reply_to"] = reply_to
+
             temp_id = data.get("tempId", "") if isinstance(data, dict) else ""
             msg_payload = {
                 "type": "message",

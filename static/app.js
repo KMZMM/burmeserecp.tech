@@ -921,6 +921,7 @@ let isUserSignedIn = safeStorage.getItem("tg_signed_in") === "true";
 let myUsername = "";
 let myAvatarUrl = "";
 let myEmail = "";
+let currentReplyTo = null;
 
 function updateCreditsDisplay() {
   const badge = document.getElementById("userCreditsBadge");
@@ -1304,28 +1305,41 @@ function showContextMenu(e, messageId, isSelf) {
   });
   menu.appendChild(reactionRow);
 
-  // Unsend button for self, or Copy Text for others
-  if (isSelf) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'tg-menu-item delete-item';
-    deleteBtn.type = 'button';
-    deleteBtn.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-      </svg>
-      ${TRANSLATIONS[currentLang]["unsend"]}
-    `;
-    deleteBtn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      socket.send(JSON.stringify({
-        action: "delete",
-        message_id: messageId
-      }));
-      menu.remove();
-    });
-    menu.appendChild(deleteBtn);
-  } else {
+  // Reply button (for everyone)
+  const replyBtn = document.createElement('button');
+  replyBtn.className = 'tg-menu-item';
+  replyBtn.type = 'button';
+  replyBtn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+      <polyline points="9 17 4 12 9 7"></polyline>
+      <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+    </svg>
+    ${currentLang === 'en' ? 'Reply' : 'ပြန်ကြားရန်'}
+  `;
+  replyBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    initiateReply(messageId);
+    menu.remove();
+  });
+  menu.appendChild(replyBtn);
+
+  // Copy Text or Copy Link logic based on message content
+  const msgEl = document.querySelector(`[data-msg-id="${messageId}"]`);
+  let hasText = false;
+  let mediaUrl = null;
+
+  if (msgEl) {
+    const textEl = msgEl.querySelector('.msg-text');
+    if (textEl && textEl.textContent.trim() !== '' && textEl.style.display !== 'none') {
+      hasText = true;
+    }
+    const mediaEl = msgEl.querySelector('img, video, a[download]');
+    if (mediaEl) {
+      mediaUrl = mediaEl.src || mediaEl.href;
+    }
+  }
+
+  if (hasText) {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'tg-menu-item';
     copyBtn.type = 'button';
@@ -1338,20 +1352,34 @@ function showContextMenu(e, messageId, isSelf) {
     `;
     copyBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      const msgEl = document.querySelector(`[data-msg-id="${messageId}"]`);
-      if (msgEl) {
-        const textEl = msgEl.querySelector('.msg-text');
-        if (textEl) {
-          navigator.clipboard.writeText(textEl.textContent).then(() => {
-            console.log("Text copied to clipboard");
-          }).catch(err => {
-            console.error("Failed to copy text: ", err);
-          });
-        }
+      const textEl = msgEl.querySelector('.msg-text');
+      if (textEl) {
+        navigator.clipboard.writeText(textEl.textContent).then(() => {
+          showToast("Copied to clipboard!");
+        });
       }
       menu.remove();
     });
     menu.appendChild(copyBtn);
+  } else if (mediaUrl) {
+    const copyLinkBtn = document.createElement('button');
+    copyLinkBtn.className = 'tg-menu-item';
+    copyLinkBtn.type = 'button';
+    copyLinkBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
+      ${currentLang === 'en' ? 'Copy Link' : 'လင့်ခ်ကို ကူးယူပါ'}
+    `;
+    copyLinkBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      navigator.clipboard.writeText(mediaUrl).then(() => {
+        showToast("Link copied to clipboard!");
+      });
+      menu.remove();
+    });
+    menu.appendChild(copyLinkBtn);
   }
 
   // Append to body
@@ -1537,6 +1565,39 @@ function buildMessageElement(sender, text, isSelf, avatarBg = '', type = 'messag
 
     const bubble = msgDiv.querySelector('.msg-bubble');
     if (bubble) {
+      // Render reply bar if metadata exists in attachment
+      const replyTo = attachment && attachment.reply_to ? attachment.reply_to : null;
+      if (replyTo && replyTo.message_id) {
+        const replyBar = document.createElement('div');
+        replyBar.className = 'msg-reply-bar';
+        replyBar.innerHTML = `
+          <div class="reply-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 17 4 12 9 7"></polyline>
+              <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+            </svg>
+          </div>
+          <div class="reply-content">
+            <div class="reply-sender">${replyTo.sender}</div>
+            <div class="reply-text">${replyTo.text}</div>
+          </div>
+        `;
+        replyBar.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const targetEl = chatMessages.querySelector(`[data-msg-id="${replyTo.message_id}"]`);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetEl.classList.add('reply-highlight');
+            setTimeout(() => {
+              targetEl.classList.remove('reply-highlight');
+            }, 1000);
+          } else {
+            showToast("Replied message not found in history.");
+          }
+        });
+        bubble.insertBefore(replyBar, bubble.firstChild);
+      }
+
       if (attachment && attachment.url) {
         bubble.classList.add('msg-bubble-has-attachment');
         const attachDiv = document.createElement('div');
@@ -2023,7 +2084,11 @@ function handleSendChatMessage() {
   if (!text) return;
 
   const tempId = "temp-msg-" + Date.now();
-  appendChatMessage(myUsername, text, true, "", "message", myAvatarUrl, tempId, {}, {}, tempId);
+  const optimisticAttachment = {};
+  if (currentReplyTo) {
+    optimisticAttachment.reply_to = currentReplyTo;
+  }
+  appendChatMessage(myUsername, text, true, "", "message", myAvatarUrl, tempId, {}, optimisticAttachment, tempId);
 
   const payload = {
     text: text,
@@ -2031,6 +2096,10 @@ function handleSendChatMessage() {
     avatar_url: myAvatarUrl,
     tempId: tempId
   };
+  if (currentReplyTo) {
+    payload.reply_to = currentReplyTo;
+    cancelReply();
+  }
 
   socket.send(JSON.stringify(payload));
   chatMessageInput.value = "";
@@ -2611,6 +2680,31 @@ function uploadChatAttachment(file, dims = null) {
         </div>
       </div>
     `;
+  }
+  
+  msgDiv.innerHTML = attachmentHTML;
+  const bubble = msgDiv.querySelector('.msg-bubble');
+  if (bubble && currentReplyTo) {
+    const replyBar = document.createElement('div');
+    replyBar.className = 'msg-reply-bar';
+    replyBar.innerHTML = `
+      <div class="reply-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 17 4 12 9 7"></polyline>
+          <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+        </svg>
+      </div>
+      <div class="reply-content">
+        <div class="reply-sender">${currentReplyTo.sender}</div>
+        <div class="reply-text">${currentReplyTo.text}</div>
+      </div>
+    `;
+    bubble.insertBefore(replyBar, bubble.firstChild);
+  }
+
+  const uploadReplyTo = currentReplyTo;
+  if (currentReplyTo) {
+    cancelReply();
   } else {
     // Other files (including audio) show file card during upload
     attachmentHTML = `
@@ -2724,6 +2818,9 @@ function uploadChatAttachment(file, dims = null) {
             height: dims ? dims.height : dims.videoHeight || undefined
           }
         };
+        if (uploadReplyTo) {
+          payload.reply_to = uploadReplyTo;
+        }
         socket.send(JSON.stringify(payload));
       } else {
         failUpload("Upload failed: " + xhr.statusText);
@@ -3224,6 +3321,53 @@ if (goTtsBtn) goTtsBtn.addEventListener("click", showTtsPage);
 if (goChatBtn) goChatBtn.addEventListener("click", showChatPage);
 if (homeBtn) homeBtn.addEventListener("click", showPortalPage);
 
+function initiateReply(messageId) {
+  const msgEl = document.querySelector(`[data-msg-id="${messageId}"]`);
+  if (!msgEl) return;
+
+  const sender = msgEl.querySelector('.msg-sender')?.textContent || "User";
+  let text = msgEl.querySelector('.msg-text')?.textContent || "";
+  
+  if (!text || text.trim() === '') {
+    const filenameEl = msgEl.querySelector('.file-name');
+    if (filenameEl) {
+      text = "📎 " + filenameEl.textContent;
+    } else if (msgEl.querySelector('img')) {
+      text = "🖼️ Photo";
+    } else if (msgEl.querySelector('video')) {
+      text = "📹 Video";
+    } else {
+      text = "File Attachment";
+    }
+  }
+
+  currentReplyTo = {
+    message_id: messageId,
+    sender: sender,
+    text: text
+  };
+
+  const replyPreviewBar = document.getElementById("replyPreviewBar");
+  const replyPreviewSender = document.getElementById("replyPreviewSender");
+  const replyPreviewText = document.getElementById("replyPreviewText");
+
+  if (replyPreviewBar && replyPreviewSender && replyPreviewText) {
+    replyPreviewSender.textContent = sender;
+    replyPreviewText.textContent = text;
+    replyPreviewBar.style.display = "flex";
+  }
+
+  if (chatMessageInput) chatMessageInput.focus();
+}
+
+function cancelReply() {
+  currentReplyTo = null;
+  const replyPreviewBar = document.getElementById("replyPreviewBar");
+  if (replyPreviewBar) {
+    replyPreviewBar.style.display = "none";
+  }
+}
+
 // ===== STARTUP INITIALIZATION =====
 // This MUST be called at the end of the script to start everything.
 (function initApp() {
@@ -3245,4 +3389,10 @@ if (homeBtn) homeBtn.addEventListener("click", showPortalPage);
   // 6. Init slider display values
   updateSliders();
   updateCount();
+
+  // 7. Bind reply cancellation close btn
+  const replyClose = document.getElementById("replyPreviewCloseBtn");
+  if (replyClose) {
+    replyClose.addEventListener("click", cancelReply);
+  }
 })();

@@ -910,6 +910,12 @@ function updateLanguage(lang) {
   initUserSession();
 }
 
+// Wire up language switcher buttons
+const _langEnBtn = document.getElementById("langEnBtn");
+const _langMmBtn = document.getElementById("langMmBtn");
+if (_langEnBtn) _langEnBtn.addEventListener("click", () => updateLanguage("en"));
+if (_langMmBtn) _langMmBtn.addEventListener("click", () => updateLanguage("my"));
+
 // Session State
 let isUserSignedIn = safeStorage.getItem("tg_signed_in") === "true";
 let myUsername = "";
@@ -2142,9 +2148,13 @@ if (avatarUploadBtn && signUpAvatarFile) {
         else fileType = 'image/jpeg';
       }
 
-      const response = await authFetch("/api/storage/presign", {
+      // Use plain fetch for presign during signup (no auth token yet)
+      const presignToken = safeStorage.getItem("jwt_token") || "";
+      const presignHeaders = { "Content-Type": "application/json" };
+      if (presignToken) presignHeaders["Authorization"] = `Bearer ${presignToken}`;
+      const response = await fetch(getApiUrl("/api/storage/presign"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: presignHeaders,
         body: JSON.stringify({ filename: fileName, content_type: fileType })
       });
 
@@ -3082,18 +3092,7 @@ function playAudioInMiniPlayer(url, filename, sender) {
   }
 }
 
-// ===== Dashboard Portal Logic =====
-function showTtsPage() {
-  if (portalContainer) portalContainer.style.display = "none";
-  if (appLayoutWrapper) {
-    appLayoutWrapper.style.display = ""; 
-    appLayoutWrapper.classList.add("show-tts-only");
-    appLayoutWrapper.classList.remove("show-chat-only");
-  }
-  if (appContainer) appContainer.style.display = "block";
-  if (chatCard) chatCard.style.display = "none";
-  if (homeBtn) homeBtn.style.display = "inline-flex";
-}
+
 
 function showChatPage() {
   if (portalContainer) portalContainer.style.display = "none";
@@ -3105,6 +3104,8 @@ function showChatPage() {
   if (appContainer) appContainer.style.display = "none";
   if (chatCard) chatCard.style.display = "block";
   if (homeBtn) homeBtn.style.display = "inline-flex";
+  // Fullscreen mobile chat mode
+  document.body.classList.add("chat-only-view");
 }
 
 function showPortalPage() {
@@ -3114,6 +3115,20 @@ function showPortalPage() {
     appLayoutWrapper.classList.remove("show-tts-only", "show-chat-only");
   }
   if (homeBtn) homeBtn.style.display = "none";
+  document.body.classList.remove("chat-only-view");
+}
+
+function showTtsPage() {
+  if (portalContainer) portalContainer.style.display = "none";
+  if (appLayoutWrapper) {
+    appLayoutWrapper.style.display = ""; 
+    appLayoutWrapper.classList.add("show-tts-only");
+    appLayoutWrapper.classList.remove("show-chat-only");
+  }
+  if (appContainer) appContainer.style.display = "block";
+  if (chatCard) chatCard.style.display = "none";
+  if (homeBtn) homeBtn.style.display = "inline-flex";
+  document.body.classList.remove("chat-only-view");
 }
 
 // Bind to window object for inline HTML onclick handlers
@@ -3124,3 +3139,26 @@ window.showPortalPage = showPortalPage;
 if (goTtsBtn) goTtsBtn.addEventListener("click", showTtsPage);
 if (goChatBtn) goChatBtn.addEventListener("click", showChatPage);
 if (homeBtn) homeBtn.addEventListener("click", showPortalPage);
+
+// ===== STARTUP INITIALIZATION =====
+// This MUST be called at the end of the script to start everything.
+(function initApp() {
+  // 1. Apply language preference
+  updateLanguage(currentLang);
+
+  // 2. Initialize user session state (shows/hides lock overlays, profile btn etc)
+  initUserSession();
+
+  // 3. Populate signup avatar options
+  renderPresetAvatars();
+
+  // 4. Load TTS voices from API
+  loadVoices();
+
+  // 5. Connect WebSocket for live chat
+  connectWebSocket();
+
+  // 6. Init slider display values
+  updateSliders();
+  updateCount();
+})();

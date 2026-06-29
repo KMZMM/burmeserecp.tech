@@ -716,6 +716,10 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
             if action == "pong":
                 continue
 
+            if username == "Anonymous":
+                # Securely reject any chat interactions from unauthenticated connections
+                continue
+
             if action == "delete":
                 msg_id = data.get("message_id")
                 conn, db_type = get_db_connection()

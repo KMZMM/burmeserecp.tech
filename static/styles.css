@@ -311,7 +311,7 @@ body[data-theme="light"] .moon-icon {
 .telegram-chat-card {
   position: sticky;
   top: 84px;
-  height: calc(100vh - 160px);
+  height: calc(100vh - 120px);
   min-height: 400px;
   background-color: var(--ios-surface);
   backdrop-filter: blur(20px);
@@ -2443,7 +2443,7 @@ body[data-theme="light"] .moon-icon {
 }
 
 .app-layout-wrapper.show-chat-only .telegram-chat-card {
-  height: calc(100vh - 140px);
+  height: calc(100vh - 120px);
   max-height: none;
   min-height: 400px;
 }
@@ -2669,7 +2669,7 @@ body[data-theme="light"] .moon-icon {
 
 /* ========== Telegram Style Media/Doc Attachments ========== */
 .msg-bubble-media {
-  max-width: 260px;
+  max-width: 320px;
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
@@ -2682,13 +2682,13 @@ body[data-theme="light"] .moon-icon {
   width: 100%;
   height: auto;
   display: block;
-  max-height: 360px;
+  max-height: 320px;
   object-fit: contain;
   border-radius: 12px;
 }
 
 .msg-video-player {
-  max-width: 260px;
+  max-width: 320px;
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
@@ -2701,7 +2701,7 @@ body[data-theme="light"] .moon-icon {
 .msg-video-player video {
   width: 100%;
   height: auto;
-  max-height: 360px;
+  max-height: 320px;
   display: block;
   object-fit: contain;
   border-radius: 12px;
@@ -3246,7 +3246,9 @@ body[data-theme="light"] .moon-icon {
   z-index: 12;
 }
 .custom-video-player:hover .video-controls-bar,
-.custom-video-player.controls-active .video-controls-bar {
+.custom-video-player.controls-active .video-controls-bar,
+.custom-video-player:fullscreen .video-controls-bar,
+.custom-video-player:-webkit-full-screen .video-controls-bar {
   opacity: 1;
   transform: translateY(0);
 }

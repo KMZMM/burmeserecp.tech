@@ -1554,6 +1554,7 @@ body[data-theme="light"] .moon-icon {
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
+    height: 100dvh !important;
     height: -webkit-fill-available !important;
     border: none !important;
     border-radius: 0 !important;
@@ -1561,8 +1562,20 @@ body[data-theme="light"] .moon-icon {
     display: flex !important;
     flex-direction: column !important;
   }
+  body.chat-only-view .chat-messages {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.chat-only-view .chat-input-container {
+    flex-shrink: 0 !important;
+    position: relative !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
   body.chat-only-view .chat-header {
     border-radius: 0 !important;
+    padding-top: env(safe-area-inset-top, 14px);
   }
   body.chat-only-view .chat-input-lock-overlay {
     border-radius: 0 !important;

@@ -1536,7 +1536,13 @@ body[data-theme="light"] .moon-icon {
 }
 
 @media (max-width: 768px) {
-  /* Make the Burmese Recap Community view fully immersive/fullscreen like Web Telegram */
+  body.chat-only-view {
+    overflow: hidden !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    position: fixed !important;
+    width: 100vw !important;
+  }
   body.chat-only-view .ios-navbar {
     display: none;
   }

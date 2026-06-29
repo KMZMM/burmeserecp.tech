@@ -2442,6 +2442,22 @@ if (chatSendButton && chatMessageInput) {
       handleSendChatMessage();
     }
   });
+
+  // Handle mobile keyboard scrolling overlay/offset bugs
+  chatMessageInput.addEventListener("blur", () => {
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }, 40);
+  });
+
+  chatMessageInput.addEventListener("focus", () => {
+    setTimeout(() => {
+      // Keep scroll state clean
+      if (document.body.classList.contains("chat-only-view")) {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      }
+    }, 40);
+  });
 }
 
 // ===== Emoji Picker Logic =====

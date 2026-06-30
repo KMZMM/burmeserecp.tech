@@ -1425,6 +1425,28 @@ function renderDownloadPlaceholder(attachDiv, attachment, type, successCallback)
   const blurUrl = isImgOrVid ? attachment.url : 'images/community_logo.png';
   blurBg.style.cssText = `position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('${blurUrl}') no-repeat center/cover; filter: blur(25px) brightness(0.65); opacity: 0.85; width: 100%; height: 100%;`;
   container.appendChild(blurBg);
+
+  // Dynamically resolve dimensions for placeholder if missing
+  if (type === "image" && (!attachment.width || !attachment.height)) {
+    const img = new Image();
+    img.src = attachment.url;
+    img.onload = () => {
+      container.style.aspectRatio = `${img.width} / ${img.height}`;
+      container.style.height = "auto";
+      attachDiv.style.aspectRatio = `${img.width} / ${img.height}`;
+      attachDiv.style.height = "auto";
+    };
+  } else if (type === "video" && (!attachment.width || !attachment.height)) {
+    const video = document.createElement('video');
+    video.src = attachment.url;
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      container.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+      container.style.height = "auto";
+      attachDiv.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+      attachDiv.style.height = "auto";
+    };
+  }
   
   const controlDiv = document.createElement("div");
   controlDiv.className = "media-download-control";
@@ -2814,8 +2836,8 @@ function uploadChatAttachment(file, dims = null) {
             filename: fileName,
             content_type: fileType,
             size: file.size,
-            width: dims ? dims.width : dims.videoWidth || undefined,
-            height: dims ? dims.height : dims.videoHeight || undefined
+            width: (dims && dims.width) ? dims.width : undefined,
+            height: (dims && dims.height) ? dims.height : undefined
           }
         };
         if (uploadReplyTo) {
